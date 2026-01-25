@@ -1,98 +1,177 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  FlatList,
+  Image,
+  Pressable,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { Fragment, use } from "react";
+import cn from "clsx";
+import offerImage from "@/assets/images/offer.png";
+import menuImage from "@/assets/images/menu.png";
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import CartButton from "@/components/CartButton";
+import { images, offers } from "@/constants";
+import useAuthStore from "@/store/auth.store";
+import { FeaturedItemCard } from "@/components/FeaturedItemCard";
+import { getFeaturedMenuItems } from "@/lib/firebase";
 
-export default function HomeScreen() {
+import { router, useNavigation } from "expo-router";
+import { useEffect, useState } from "react";
+import { getUserOrders } from "@/lib/firebase";
+import OrderCard from "@/components/OrderCard";
+import { Order } from "@/type";
+import { useCartStore } from "@/store/cart.store";
+
+export default function Index() {
+  // 🔹 Hooks MUST be at the top
+  const [featured, setFeatured] = useState<any[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loadingFeatured, setLoadingFeatured] = useState(true);
+  const [loadingOrders, setLoadingOrders] = useState(true);
+
+  // 🔹 Load featured items
+  useEffect(() => {
+    const loadFeatured = async () => {
+      const items = await getFeaturedMenuItems();
+      setFeatured(items);
+      setLoadingFeatured(false);
+    };
+
+    loadFeatured();
+  }, []);
+
+  // 🔹 Load user orders
+  useEffect(() => {
+    const loadOrders = async () => {
+      const { user } = useAuthStore.getState();
+      console.log("Current user:", user?.id);
+      if (!user) {
+        setLoadingOrders(false);
+        return;
+      }
+
+      const data = await getUserOrders(user.id);
+      console.log("Fetched orders data:", data);
+      setOrders(data);
+      setLoadingOrders(false);
+    };
+
+    loadOrders();
+  }, []);
+
+  useEffect(() => {
+    console.log("Loaded orders:", orders);
+  }, [orders]);
+
+  // 🔹 Render logic AFTER hooks
+  if (loadingFeatured) {
+    return (
+      <SafeAreaView>
+        <Text>Loading featured items...</Text>
+      </SafeAreaView>
+    );
+  }
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
+    <SafeAreaView className="flex-1 bg-white">
+      <ScrollView>
+        <View className="flex-between flex-row w-full my-5">
+          <View className="flex-start">
+            <Text className="small-bold text-primary">DELIVER TO</Text>
+            <TouchableOpacity className="flex-center flex-row gap-x-1 mt-0.5">
+              <Text className="paragraph-bold text-dark-100">London</Text>
+              <Image
+                source={images.arrowDown}
+                className="size-3"
+                resizeMode="contain"
               />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+            </TouchableOpacity>
+          </View>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+          <CartButton />
+        </View>
+        <Pressable onPress={() => router.push("/(tabs)/offers")}>
+          <View className="flex flex-row-reverse bg-red-700 h-48 m-4 p-8 shadow-lg rounded-3xl overflow-hidden">
+            <View className={"h-full w-1/2"}>
+              <Image
+                source={offerImage}
+                className={"size-full rounded-full"}
+                resizeMode={"contain"}
+              />
+            </View>
+
+            <View className="offer-card__info">
+              <Text className="h1-bold text-white leading-tight">offers</Text>
+              <Image
+                source={images.arrowRight}
+                className="size-10"
+                resizeMode="contain"
+                tintColor="#ffffff"
+              />
+            </View>
+          </View>
+        </Pressable>
+        <Pressable onPress={() => router.push("/(tabs)/menu")}>
+          <View className="flex flex-row bg-orange-500 h-48 m-5 p-8 gap-8 shadow-lg rounded-3xl overflow-hidden">
+            <View className="h-full w-1/2">
+              <Image
+                source={menuImage} // must be a transparent PNG
+                className="w-full h-full rounded-full"
+                resizeMode="contain"
+              />
+            </View>
+
+            <View className="justify-between">
+              <Text className="text-white text-3xl font-bold">menu</Text>
+              <Image
+                source={images.arrowRight}
+                className="w-10 h-10"
+                resizeMode="contain"
+                tintColor="#fff"
+              />
+            </View>
+          </View>
+        </Pressable>
+        <View className="px-5 mt-2 mb-5">
+          <FlatList
+            data={featured.slice(0, 4)}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(item) => item.$id}
+            contentContainerStyle={{ paddingLeft: 20, paddingRight: 8 }}
+            renderItem={({ item }) => (
+              <FeaturedItemCard
+                item={item}
+                onPress={() =>
+                  router.push({
+                    pathname: "/(modals)/product/[id]",
+                    params: { id: item.$id },
+                  })
+                }
+              />
+            )}
+          />
+        </View>
+
+        <View className="px-5 mt-2 mb-5">
+          <Text>Previous orders</Text>
+          {orders.map((order) => (
+            <OrderCard
+              key={order.id}
+              order={order}
+              onPress={() => router.push(`/(tabs)/profile`)}
+              onReorder={() => {
+                useCartStore.getState().reorder(order.items);
+                router.push("/cart");
+              }}
+            />
+          ))}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-});

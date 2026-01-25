@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "11973230086",
+    "project_id": "takeaway-app-e4220",
+    "storage_bucket": "takeaway-app-e4220.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:11973230086:android:3b88e3ea27a3b645d40d87",
+        "android_client_info": {
+          "package_name": "com.vdimsumdumpling.takeaway"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "11973230086-3tnu09sk7tcpg1diq20si0aa0kktuaj8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAZuSd-Za2J4sUccvhwRkdXAKSYVHGaybk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "11973230086-3tnu09sk7tcpg1diq20si0aa0kktuaj8.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "11973230086-ehl8ri69b151m9vujongbirkjp41vklk.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.vdimsumdumpling.takeaway"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
