@@ -26,12 +26,17 @@ import OrderCard from "@/components/OrderCard";
 import { Order } from "@/type";
 import { useCartStore } from "@/store/cart.store";
 
+import { useOrdersStore } from "@/store/orders.store";
+
 export default function Index() {
   // 🔹 Hooks MUST be at the top
   const [featured, setFeatured] = useState<any[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
+  //const [orders, setOrders] = useState<Order[]>([]);
   const [loadingFeatured, setLoadingFeatured] = useState(true);
   const [loadingOrders, setLoadingOrders] = useState(true);
+
+  const { orders, setOrders } = useOrdersStore();
+  const latestOrder = orders[0];
 
   // 🔹 Load featured items
   useEffect(() => {
@@ -159,17 +164,17 @@ export default function Index() {
 
         <View className="px-5 mt-2 mb-5">
           <Text>Previous orders</Text>
-          {orders.map((order) => (
+          {latestOrder && (
             <OrderCard
-              key={order.id}
-              order={order}
-              onPress={() => router.push(`/(tabs)/profile`)}
+              order={latestOrder}
+              key={latestOrder.id}
+              onPress={router.push("/(tabs)/profile")}
               onReorder={() => {
-                useCartStore.getState().reorder(order.items);
+                useCartStore.getState().reorder(latestOrder.items);
                 router.push("/cart");
               }}
             />
-          ))}
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>

@@ -12,7 +12,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import PhotoCard from "../../components/PhotoCard";
-import { StatusBar } from "expo-status-bar"
+import { StatusBar } from "expo-status-bar";
+import { router } from "expo-router";
+import ProfileActionRow from "@/components/ProfileActionRow";
 
 const Profile = () => {
   const { user, isLoading, logout } = useAuthStore();
@@ -33,15 +35,29 @@ const Profile = () => {
 
   return (
     <SafeAreaView className="flex-1 items-center justify-center gap-4">
-      <StatusBar backgroundColor='white' />
-      <Text className="text-lg font-bold">{user.name}</Text>
-      <Text className="text-gray-500">{user.email}</Text>
-      <Text className="text-gray-500">{user.avatar}</Text>
+      <StatusBar backgroundColor="white" />
+      <View className="items-center gap-2 mt-4">
+        <View className="w-20 h-20 rounded-full bg-gray-200 items-center justify-center">
+          <Ionicons name="person" size={40} color="#666" />
+        </View>
+
+        <Text className="text-xl font-bold">{user.name}</Text>
+        <Text className="text-gray-500">{user.email}</Text>
+      </View>
+      <View className="w-full mt-6">
+        <ProfileActionRow
+          icon="receipt-outline"
+          label="My Orders"
+          onPress={() => router.push("/orders")}
+        />
+        <ProfileActionRow
+          icon="settings-outline"
+          label="Settings"
+          onPress={() => router.push("/settings")}
+        />
+      </View>
+
       <Button onPressIn={logout}> Logout </Button>
-      <Ionicons name="home-outline" size={24} />
-      <Ionicons name="mail" size={24} />
-      <Ionicons name="wallet" size={24} />
-      <Ionicons name="push" size={24} />
     </SafeAreaView>
   );
 };

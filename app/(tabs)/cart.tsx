@@ -1,76 +1,3 @@
-// import {View, Text, FlatList} from 'react-native'
-// import {SafeAreaView} from "react-native-safe-area-context";
-// import {useCartStore} from "@/store/cart.store";
-// import CustomHeader from "@/components/CustomHeader";
-// import cn from "clsx";
-// import CustomButton from "@/components/CustomButton";
-// import CartItem from "@/components/CartItem";
-
-// const PaymentInfoStripe = ({ label,  value,  labelStyle,  valueStyle, }: PaymentInfoStripeProps) => (
-//     <View className="flex-between flex-row my-1">
-//         <Text className={cn("paragraph-medium text-gray-200", labelStyle)}>
-//             {label}
-//         </Text>
-//         <Text className={cn("paragraph-bold text-dark-100", valueStyle)}>
-//             {value}
-//         </Text>
-//     </View>
-// );
-
-// const Cart = () => {
-//     const { items, getTotalItems, getTotalPrice } = useCartStore();
-
-//     const totalItems = getTotalItems();
-//     const totalPrice = getTotalPrice();
-
-//     return (
-//         <SafeAreaView className="bg-white h-full">
-//             <FlatList
-//                 data={items}
-//                 renderItem={({ item }) => <CartItem item={item} />}
-//                 keyExtractor={(item) => item.id}
-//                 contentContainerClassName="pb-28 px-5 pt-5"
-//                 ListHeaderComponent={() => <CustomHeader title="Your Cart" />}
-//                 ListEmptyComponent={() => <Text>Cart Empty</Text>}
-//                 ListFooterComponent={() => totalItems > 0 && (
-//                     <View className="gap-5">
-//                         <View className="mt-6 border border-gray-200 p-5 rounded-2xl">
-//                             <Text className="h3-bold text-dark-100 mb-5">
-//                                 Payment Summary
-//                             </Text>
-
-//                             <PaymentInfoStripe
-//                                 label={`Total Items (${totalItems})`}
-//                                 value={`$${totalPrice.toFixed(2)}`}
-//                             />
-//                             <PaymentInfoStripe
-//                                 label={`Delivery Fee`}
-//                                 value={`$5.00`}
-//                             />
-//                             <PaymentInfoStripe
-//                                 label={`Discount`}
-//                                 value={`- $0.50`}
-//                                 valueStyle="!text-success"
-//                             />
-//                             <View className="border-t border-gray-300 my-2" />
-//                             <PaymentInfoStripe
-//                                 label={`Total`}
-//                                 value={`$${(totalPrice + 5 - 0.5).toFixed(2)}`}
-//                                 labelStyle="base-bold !text-dark-100"
-//                                 valueStyle="base-bold !text-dark-100 !text-right"
-//                             />
-//                         </View>
-
-//                         <CustomButton title="Order Now" />
-//                     </View>
-//                 )}
-//             />
-//         </SafeAreaView>
-//     )
-// }
-
-// export default Cart
-
 import { View, Text, FlatList, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useCartStore } from "@/store/cart.store";
@@ -92,6 +19,9 @@ import {
 } from "@/type";
 import { cloudFunctions } from "@/lib/firebase";
 import { formatCurrency } from "@/lib/formatter";
+
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 
 const PaymentInfoStripe = ({
   label,
@@ -129,7 +59,7 @@ const Cart = () => {
       if (!user) throw new Error("User not logged in");
 
       const orderId = await useCartStore.getState().createOrder(user.uid);
-     
+
       // 2️⃣ Call Firebase Function to create PaymentIntent
       const createPaymentIntent = httpsCallable<
         createPaymentIntentRequest,
@@ -160,6 +90,7 @@ const Cart = () => {
       } else {
         Alert.alert("Payment Success", "Your order has been placed!");
         useCartStore.getState().clearCart();
+        router.replace("/orders");
       }
     } catch (err: any) {
       console.error(err);
@@ -175,7 +106,25 @@ const Cart = () => {
         keyExtractor={(item) => item.id}
         contentContainerClassName="pb-28 px-5 pt-5"
         ListHeaderComponent={() => <CustomHeader title="Your Cart" />}
-        ListEmptyComponent={() => <Text>Cart Empty</Text>}
+        ListEmptyComponent={() => (
+          <View className="flex-1 items-center justify-center mt-32 px-6">
+            <Ionicons name="cart-outline" size={80} color="#D1D5DB" />
+
+            <Text className="text-xl font-semibold mt-6">
+              Your cart is empty
+            </Text>
+
+            <Text className="text-gray-500 text-center mt-2">
+              Looks like you haven’t added anything yet.
+            </Text>
+            <View className="mt-6 w-full">
+              <CustomButton
+                title="Browse menu"
+                onPress={() => router.push("/(tabs)/menu")}
+              />
+            </View>
+          </View>
+        )}
         ListFooterComponent={() =>
           totalItems > 0 && (
             <View className="gap-5">
@@ -188,7 +137,10 @@ const Cart = () => {
                   label={`Total Items (${totalItems})`}
                   value={`${formatCurrency(totalPrice)}`}
                 />
-                <PaymentInfoStripe label={`Delivery Fee`} value={`${formatCurrency(200)}`} />
+                <PaymentInfoStripe
+                  label={`Delivery Fee`}
+                  value={`${formatCurrency(200)}`}
+                />
                 <PaymentInfoStripe
                   label={`Discount`}
                   value={`- ${formatCurrency(50)}`}

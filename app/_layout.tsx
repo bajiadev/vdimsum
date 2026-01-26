@@ -34,9 +34,32 @@ export default function RootLayout() {
     throw new Error("Missing Stripe publishable key");
   }
 
-  return (
+  // return (
+  //   <StripeProvider publishableKey={publishableKey}>
+  //     <Stack screenOptions={{ headerShown: false }} />
+      
+  //   </StripeProvider>
+  // );
+
+   return (
     <StripeProvider publishableKey={publishableKey}>
-      <Stack screenOptions={{ headerShown: false }} />
+      <Stack>
+        {/* Bottom tabs */}
+        <Stack.Screen
+          name="(tabs)"
+          options={{ headerShown: false }}
+        />
+
+        {/* Stack screens (back arrow shown) */}
+        <Stack.Screen
+          name="orders"
+          options={{ title: "My Orders" }}
+        />
+        <Stack.Screen
+          name="settings"
+          options={{ title: "Settings" }}
+        />
+      </Stack>
     </StripeProvider>
   );
 }
