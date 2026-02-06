@@ -23,6 +23,8 @@ import { formatCurrency } from "@/lib/formatter";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 
+import Header from "@/components/Header";
+
 const PaymentInfoStripe = ({
   label,
   value,
@@ -105,7 +107,7 @@ const Cart = () => {
         renderItem={({ item }) => <CartItem item={item} />}
         keyExtractor={(item) => item.id}
         contentContainerClassName="pb-28 px-5 pt-5"
-        ListHeaderComponent={() => <CustomHeader title="Your Cart" />}
+        ListHeaderComponent={() => <Header onOrderPress={() => router.push("/shops")} />}
         ListEmptyComponent={() => (
           <View className="flex-1 items-center justify-center mt-32 px-6">
             <Ionicons name="cart-outline" size={80} color="#D1D5DB" />

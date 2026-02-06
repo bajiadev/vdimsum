@@ -1,8 +1,8 @@
-import { Redirect, Tabs } from "expo-router";
 import useAuthStore from "@/store/auth.store";
-import { Text, View } from "react-native";
-import cn from "clsx";
 import { Ionicons } from "@expo/vector-icons";
+import cn from "clsx";
+import { Tabs } from "expo-router";
+import { Text, View } from "react-native";
 
 type TabIconProps = {
   focused: boolean;
@@ -28,8 +28,6 @@ export default function TabLayout() {
   const { user } = useAuthStore();
 
   console.log("Authenticated user:", user);
-
-  if (!user) return <Redirect href="/sign-up" />;
 
   return (
     <Tabs

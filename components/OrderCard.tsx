@@ -1,8 +1,20 @@
-import { Pressable, Text, View, Image } from "react-native";
+import { Order } from "@/type";
+import { Pressable, Text, View } from "react-native";
 import { formatCurrency } from "../lib/formatter";
-import cn from "clsx";
 
-export default function OrderCard({ order, onPress, onReorder }) {
+interface OrderCardProps {
+  order: Order;
+  onPress?: () => void;
+  onReorder?: () => void;
+  hideReorder?: boolean;
+}
+
+export default function OrderCard({
+  order,
+  onPress,
+  onReorder,
+  hideReorder = false,
+}: OrderCardProps) {
   return (
     <Pressable
       onPress={onPress}
@@ -21,14 +33,14 @@ export default function OrderCard({ order, onPress, onReorder }) {
         {order.items?.length ?? 0} items · {formatCurrency(order.total ?? 0)}
       </Text>
 
-      <Pressable
-        onPress={onReorder}
-        className="mt-3 bg-black py-2 rounded-lg"
-      >
-        <Text className="text-white text-center font-semibold">
-          Re-order
-        </Text>
-      </Pressable>
+      {!hideReorder && (
+        <Pressable
+          onPress={onReorder}
+          className="mt-3 bg-black py-2 rounded-lg"
+        >
+          <Text className="text-white text-center font-semibold">Re-order</Text>
+        </Pressable>
+      )}
     </Pressable>
   );
 }

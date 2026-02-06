@@ -21,7 +21,7 @@ const Searchbar = () => {
         <View className="searchbar">
             <TextInput
                 className="flex-1 p-5"
-                placeholder="Search for pizzas, burgers..."
+                placeholder="What would you like?"
                 value={query}
                 onChangeText={handleSearch}
                 onSubmitEditing={handleSubmit}

@@ -45,13 +45,15 @@ export interface User {
 /* -------------------------------------------------------------------------- */
 /*                              CART & STORE                                  */
 /* -------------------------------------------------------------------------- */
-export const toCartCustomizations = (customizations: MenuItem["customizations"] = []): CartCustomization[] => {
-    return customizations.map(c => ({
-        id: c.id,
-        name: c.name,
-        price: c.price ?? 0,
-        type: c.type,
-    }));
+export const toCartCustomizations = (
+  customizations: MenuItem["customizations"] = [],
+): CartCustomization[] => {
+  return customizations.map((c) => ({
+    id: c.id,
+    name: c.name,
+    price: c.price ?? 0,
+    type: c.type,
+  }));
 };
 
 export interface CartCustomization {
@@ -72,10 +74,12 @@ export interface CartItemType {
 
 export interface CartStore {
   items: CartItemType[];
+  orderType: "delivery" | "pickup" | null;
+  setOrderType: (type: "delivery" | "pickup") => void;
   addItem: (
     product: MenuItem,
     quantity?: number,
-    customizations?: CartCustomization[]
+    customizations?: CartCustomization[],
   ) => void;
   removeItem: (id: string, customizations: CartCustomization[]) => void;
   increaseQty: (id: string, customizations: CartCustomization[]) => void;
@@ -84,16 +88,18 @@ export interface CartStore {
   getTotalItems: () => number;
   getTotalPrice: () => number;
   createOrder: (userId: string) => Promise<string>;
-  reorder: (items: { id: string; name: string; price: number; quantity: number }[]) => void;
+  reorder: (
+    items: { id: string; name: string; price: number; quantity: number }[],
+  ) => void;
 }
 
 /* -------------------------------------------------------------------------- */
 /*                                  UI TYPES                                  */
 /* -------------------------------------------------------------------------- */
 
-import { ImageSourcePropType } from "react-native";
-import React from "react";
 import { Timestamp } from "firebase/firestore";
+import React from "react";
+import { ImageSourcePropType } from "react-native";
 
 export interface TabBarIconProps {
   focused: boolean;

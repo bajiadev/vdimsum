@@ -1,32 +1,33 @@
-import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
 import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut as firebaseSignOut,
-} from "firebase/auth";
-import {
-  getFirestore,
-  collection,
-  addDoc,
-  getDocs,
-  query,
-  where,
-  Timestamp,
-  writeBatch,
-  doc,
-  serverTimestamp,
-  orderBy,
-} from "firebase/firestore";
-import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
-import { getStorage } from "firebase/storage";
-import {
+  CartItemType,
   CreateUserParams,
   GetMenuParams,
-  SignInParams,
-  CartItemType,
   Order,
+  SignInParams,
 } from "@/type";
+import { initializeApp } from "firebase/app";
+import {
+  createUserWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  signInWithEmailAndPassword,
+} from "firebase/auth";
+import {
+  addDoc,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  getFirestore,
+  orderBy,
+  query,
+  serverTimestamp,
+  setDoc,
+  Timestamp,
+  where,
+  writeBatch,
+} from "firebase/firestore";
+import { getFunctions } from "firebase/functions";
+import { getStorage } from "firebase/storage";
 //import { getReactNativePersistence } from "firebase/auth/react-native";
 
 /* -------------------------------------------------------------------------- */
@@ -50,8 +51,8 @@ export const cloudFunctions = getFunctions(app);
 //   connectFunctionsEmulator(cloudFunctions, "localhost", 5001);
 // }
 
-import { initializeAuth, getReactNativePersistence } from "firebase/auth";
 import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
+import { getReactNativePersistence, initializeAuth } from "firebase/auth";
 export const auth = initializeAuth(app, {
   persistence: getReactNativePersistence(ReactNativeAsyncStorage),
 });
@@ -257,4 +258,70 @@ export const getOrderDetails = async (orderId: string) => {
     id: doc.id,
     ...doc.data(),
   }));
+};
+
+export const getShops = async () => {
+  try {
+    const snap = await getDocs(collection(db, "shops"));
+    return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  } catch (e: any) {
+    throw new Error(e.message);
+  }
+};
+
+export const getShopInfo = async (shopId: string) => {
+  try {
+    const shopDoc = await getDoc(doc(db, "shops", shopId));
+
+    if (!shopDoc.exists()) {
+      throw new Error("Shop info not found");
+    }
+
+    return shopDoc.data();
+  } catch (error: any) {
+    throw new Error(error.message || "Failed to retrieve shop info");
+  }
+};
+
+// Update shop info
+export const updateShopInfo = async (data: any) => {
+  try {
+    const {
+      name,
+      description,
+      phone,
+      email,
+      address,
+      openingHours,
+      location,
+      imageUrl,
+    } = data;
+
+    // Validate required fields
+    if (!name) {
+      throw new Error("Shop name is required");
+    }
+
+    const updateData: any = {
+      name,
+      description: description || "",
+      phone: phone || "",
+      email: email || "",
+      updatedAt: serverTimestamp(),
+    };
+
+    if (address) updateData.address = address;
+    if (openingHours) updateData.openingHours = openingHours;
+    if (location) updateData.location = location;
+    if (imageUrl) updateData.imageUrl = imageUrl;
+
+    await setDoc(doc(db, "shops", "main"), updateData, { merge: true });
+
+    return {
+      success: true,
+      message: "Shop info updated successfully",
+    };
+  } catch (error: any) {
+    throw new Error(error.message || "Failed to update shop info");
+  }
 };

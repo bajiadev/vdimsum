@@ -26,12 +26,12 @@ const Profile = () => {
       </SafeAreaView>
     );
 
-  if (!user)
-    return (
-      <SafeAreaView>
-        <Text>No user!</Text>
-      </SafeAreaView>
-    );
+ useEffect(() => {
+  if (!user) {
+    router.replace("../(auth)/sign-in");
+  }
+}, [user]);
+
 
   return (
     <SafeAreaView className="flex-1 items-center justify-center gap-4">
@@ -41,8 +41,8 @@ const Profile = () => {
           <Ionicons name="person" size={40} color="#666" />
         </View>
 
-        <Text className="text-xl font-bold">{user.name}</Text>
-        <Text className="text-gray-500">{user.email}</Text>
+        <Text className="text-xl font-bold">{user?.name}</Text>
+        <Text className="text-gray-500">{user?.email}</Text>
       </View>
       <View className="w-full mt-6">
         <ProfileActionRow

@@ -1,10 +1,9 @@
-import { Stack } from "expo-router";
+import useAuthStore from "@/store/auth.store";
 import { StripeProvider } from "@stripe/stripe-react-native";
-import { SplashScreen } from "expo-router";
-import { isLoading, useFonts } from "expo-font";
+import { useFonts } from "expo-font";
+import { SplashScreen, Stack } from "expo-router";
 import { useEffect } from "react";
 import "./global.css";
-import useAuthStore from "@/store/auth.store";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -28,7 +27,7 @@ export default function RootLayout() {
   }, []);
 
   if (!fontsLoaded || isLoading) return null;
-  
+
   const publishableKey = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY!;
   if (!publishableKey) {
     throw new Error("Missing Stripe publishable key");
@@ -37,28 +36,23 @@ export default function RootLayout() {
   // return (
   //   <StripeProvider publishableKey={publishableKey}>
   //     <Stack screenOptions={{ headerShown: false }} />
-      
+
   //   </StripeProvider>
   // );
 
-   return (
+  return (
     <StripeProvider publishableKey={publishableKey}>
       <Stack>
+        {/* Auth screens */}
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+
         {/* Bottom tabs */}
-        <Stack.Screen
-          name="(tabs)"
-          options={{ headerShown: false }}
-        />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 
         {/* Stack screens (back arrow shown) */}
-        <Stack.Screen
-          name="orders"
-          options={{ title: "My Orders" }}
-        />
-        <Stack.Screen
-          name="settings"
-          options={{ title: "Settings" }}
-        />
+        <Stack.Screen name="orders" options={{ title: "My Orders" }} />
+        <Stack.Screen name="settings" options={{ title: "Settings" }} />
+        <Stack.Screen name="shops" options={{ headerShown: false }} />
       </Stack>
     </StripeProvider>
   );

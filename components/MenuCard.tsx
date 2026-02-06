@@ -1,17 +1,31 @@
-import { Text, TouchableOpacity, Image, Platform } from "react-native";
 import { MenuItem } from "@/type";
-//import { appwriteConfig } from "@/lib/appwrite";
-import { useCartStore } from "@/store/cart.store";
-import { Link } from "expo-router";
+import { Alert, Image, Platform, Text, TouchableOpacity } from "react-native";
 import { formatCurrency } from "@/lib/formatter";
+import useAuthStore from "@/store/auth.store";
+import { useCartStore } from "@/store/cart.store";
+import { Link, router } from "expo-router";
 
-const MenuCard = ({
-  item,
-}: {
-  item: MenuItem;
-}) => {
+const MenuCard = ({ item }: { item: MenuItem }) => {
   const imageUrl = `${item.image_url}`;
   const { addItem } = useCartStore();
+  const { user } = useAuthStore();
+
+  const handleAddToCart = () => {
+    if (!user) {
+      // Show auth modal/redirect to sign up
+      Alert.alert(
+        "Sign In Required",
+        "Please sign in to add items to your cart",
+        [
+          { text: "Cancel", onPress: () => {} },
+          { text: "Sign In", onPress: () => router.push("/sign-in") },
+          { text: "Sign Up", onPress: () => router.push("/sign-up") },
+        ],
+      );
+      return;
+    }
+    addItem(item);
+  };
 
   return (
     <Link href={{ pathname: "/product/[id]", params: { id: item.id } }} asChild>
@@ -34,12 +48,10 @@ const MenuCard = ({
         >
           {item.name}
         </Text>
-        <Text className="body-regular text-gray-200 mb-4">{formatCurrency(item.price)}</Text>
-        <TouchableOpacity
-          onPress={() =>
-            addItem(item)
-          }
-        >
+        <Text className="body-regular text-gray-200 mb-4">
+          {formatCurrency(item.price)}
+        </Text>
+        <TouchableOpacity onPress={handleAddToCart}>
           <Text className="paragraph-bold text-primary">Add to Cart +</Text>
         </TouchableOpacity>
       </TouchableOpacity>

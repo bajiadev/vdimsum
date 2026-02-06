@@ -1,0 +1,6 @@
+1. To get sha-1 info
+cd android
+.\gradlew.bat signingReport 
+2. clean reinstall
+adb uninstall your.package.name
+npx expo run:android

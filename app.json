@@ -1,24 +1,39 @@
 {
   "expo": {
-    "name": "takeaway_app",
-    "slug": "takeaway_app",
+    "name": "VDimsum",
+    "slug": "vdimsum",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "takeawayapp",
+    "scheme": "vdimsum",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "This app needs your location to show nearby restaurants and calculate distances."
+      },
+      "config": {
+        "googleMapsApiKey": "AIzaSyDON8ZArcIE284wjwaLA-4IHhAL3551bQw"
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
+      "permissions": [
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyAbqacuQdaQeYgPrx0kWlFJviIpF0tGYrI"
+        }
+      },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.takeaway_app"
+      "package": "com.anonymous.vdimsum"
     },
     "web": {
       "bundler": "metro"
@@ -41,6 +56,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "f59c7df3-49b2-4109-9a6f-3851369ccc54"
+      }
+    },
+    "owner": "bajiadev"
   }
 }

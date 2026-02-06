@@ -51,7 +51,7 @@ const SignIn = () => {
       // 3️⃣ Navigate to home
       router.replace("/");
     } catch (error: any) {
-      Alert.alert("Error", error.message || "Something went wrong");
+      Alert.alert("Error", "Invalid username or password");
     } finally {
       setIsSubmitting(false);
     }

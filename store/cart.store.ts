@@ -111,21 +111,20 @@
 //   ),
 // );
 
-import { create } from "zustand";
-import {
-  getFirestore,
-  collection,
-  addDoc,
-  serverTimestamp,
-} from "firebase/firestore";
 import { app } from "@/lib/firebase"; // your firebase config
 import {
-  CartCustomization,
-  CartStore,
   CartItemType,
+  CartStore,
   MenuItem,
   toCartCustomizations,
 } from "@/type";
+import {
+  addDoc,
+  collection,
+  getFirestore,
+  serverTimestamp,
+} from "firebase/firestore";
+import { create } from "zustand";
 
 const db = getFirestore(app);
 
@@ -145,6 +144,8 @@ function areCustomizationsEqual(
 
 export const useCartStore = create<CartStore>((set, get) => ({
   items: [],
+  orderType: null as "delivery" | "pickup" | null, // Track delivery/pickup preference
+  setOrderType: (type: "delivery" | "pickup") => set({ orderType: type }),
   addItem: (item, quantity = 1) => {
     const customizations = item.customizations ?? [];
 
@@ -235,15 +236,14 @@ export const useCartStore = create<CartStore>((set, get) => ({
     return orderRef.id; // return order id
   },
 
- reorder: (items: CartItemType[]) => {
-  set({
-    items: items.map((i) => ({
-      id: i.id,
-      name: i.name,
-      price: i.price,
-      quantity: i.quantity,
-    })),
-  });
-},
-
+  reorder: (items: CartItemType[]) => {
+    set({
+      items: items.map((i) => ({
+        id: i.id,
+        name: i.name,
+        price: i.price,
+        quantity: i.quantity,
+      })),
+    });
+  },
 }));

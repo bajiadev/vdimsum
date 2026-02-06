@@ -1,20 +1,18 @@
-import { FlatList, Text, View, Button } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import useFirebase from "@/lib/useFirebase";
-import { getCategories, getMenu } from "@/lib/firebase";
-import { useLocalSearchParams } from "expo-router";
-import { useEffect } from "react";
-import CartButton from "@/components/CartButton";
-import cn from "clsx";
+import Header from "@/components/Header";
 import MenuCard from "@/components/MenuCard";
+import { getCategories, getMenu } from "@/lib/firebase";
+import useFirebase from "@/lib/useFirebase";
 import { MenuItem } from "@/type";
+import cn from "clsx";
+import { router, useLocalSearchParams } from "expo-router";
+import { useEffect } from "react";
+import { FlatList, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import Filter from "@/components/Filter";
 import SearchBar from "@/components/SearchBar";
 
 import { useMenu } from "@/store/menu.store";
-
-// import seed from '@/lib/seed';
 
 const Menu = () => {
   const setMenu = useMenu((state) => state.setMenu);
@@ -45,7 +43,7 @@ const Menu = () => {
         description: doc.description,
         calories: doc.calories,
         rating: doc.rating,
-        type: doc.type
+        type: doc.type,
       }));
       setMenu(menuItem);
     }
@@ -62,7 +60,7 @@ const Menu = () => {
             <View
               className={cn(
                 "flex-1 max-w-[48%]",
-                !isFirstRightColItem ? "mt-10" : "mt-0"
+                !isFirstRightColItem ? "mt-10" : "mt-0",
               )}
             >
               <MenuCard item={item as MenuItem} />
@@ -75,21 +73,7 @@ const Menu = () => {
         contentContainerClassName="gap-7 px-5 pb-32"
         ListHeaderComponent={() => (
           <View className="my-5 gap-5">
-            <View className="flex-between flex-row w-full">
-              <View className="flex-start">
-                <Text className="small-bold uppercase text-primary">
-                  Search
-                </Text>
-                <View className="flex-start flex-row gap-x-1 mt-0.5">
-                  <Text className="paragraph-semibold text-dark-100">
-                    Find your favorite food
-                  </Text>
-                </View>
-              </View>
-
-              <CartButton />
-            </View>
-
+            <Header onOrderPress={() => router.push("/shops")} />
             <SearchBar />
 
             <Filter categories={categories!} />
@@ -97,7 +81,6 @@ const Menu = () => {
         )}
         ListEmptyComponent={() => !loading && <Text>No results</Text>}
       />
-      {/* <Button title='seed' onPress={() => seed().catch((error) => console.log("Failed to seed"))} /> */}
     </SafeAreaView>
   );
 };
