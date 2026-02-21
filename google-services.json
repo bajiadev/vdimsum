@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "11973230086-kr95pd6u5korci1cq5mehr7i71rv57sg.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.vdimsumdumpling.takeaway",
+            "certificate_hash": "5a7af472023eae5122b0ddba7938a431c9b84620"
+          }
+        },
+        {
           "client_id": "11973230086-3tnu09sk7tcpg1diq20si0aa0kktuaj8.apps.googleusercontent.com",
           "client_type": 3
         }

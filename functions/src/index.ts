@@ -1,19 +1,19 @@
-import * as functions from "firebase-functions";
 import admin from "firebase-admin";
-import Stripe from "stripe";
-import { onCall } from "firebase-functions/v2/https";
+import * as functions from "firebase-functions";
 import { defineSecret } from "firebase-functions/params";
+import { onCall } from "firebase-functions/v2/https";
+import Stripe from "stripe";
 admin.initializeApp();
 const db = admin.firestore();
 
 // Create Stripe instance using secret injected by Firebase
 const STRIPE_SECRET = defineSecret("STRIPE_SECRET");
 
-// Helper: calculate total from cart items in Firestore
-async function calculateTotal(cartItems: { id: string; quantity: number }[]) {
+// Helper: calculate total from order items in Firestore
+async function calculateTotal(orderItems: { id: string; quantity: number }[]) {
   let total = 0;
 
-  for (const item of cartItems) {
+  for (const item of orderItems) {
     const doc = await db.collection("menu").doc(item.id).get();
     if (!doc.exists)
       throw new functions.https.HttpsError(
@@ -43,9 +43,32 @@ export const createPaymentIntent = onCall(
       const stripe = new Stripe(STRIPE_SECRET.value(), {
         apiVersion: "2025-12-15.clover",
       });
-      const { cartItems, orderId } = request.data;
-      console.log("Received cartItems:", cartItems, "orderId:", orderId);
-      const amount = await calculateTotal(cartItems);
+      const { orderItems, orderId } = request.data;
+
+      // Validate orderItems
+      if (!orderItems || !Array.isArray(orderItems)) {
+        throw new functions.https.HttpsError(
+          "invalid-argument",
+          `orderItems must be an array. Received: ${typeof orderItems}`,
+        );
+      }
+
+      if (orderItems.length === 0) {
+        throw new functions.https.HttpsError(
+          "invalid-argument",
+          "orderItems cannot be empty",
+        );
+      }
+
+      if (!orderId) {
+        throw new functions.https.HttpsError(
+          "invalid-argument",
+          "orderId is required",
+        );
+      }
+
+      console.log("Received orderItems:", orderItems, "orderId:", orderId);
+      const amount = await calculateTotal(orderItems);
       console.log("Calculated total amount:", amount);
       const paymentIntent = await stripe.paymentIntents.create({
         amount,
@@ -59,7 +82,8 @@ export const createPaymentIntent = onCall(
       console.error("Error in createPaymentIntent:", error);
       throw new functions.https.HttpsError(
         "internal",
-        error.message || "Unknown error in payment intent creation");
+        error.message || "Unknown error in payment intent creation",
+      );
     }
   },
 );

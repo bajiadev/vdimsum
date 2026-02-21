@@ -1,4 +1,3 @@
-import useAuthStore from "@/store/auth.store";
 import { Ionicons } from "@expo/vector-icons";
 import cn from "clsx";
 import { Tabs } from "expo-router";
@@ -25,10 +24,6 @@ const TabBarIcon = ({ focused, icon, title }: TabIconProps) => (
 );
 
 export default function TabLayout() {
-  const { user } = useAuthStore();
-
-  console.log("Authenticated user:", user);
-
   return (
     <Tabs
       screenOptions={{
@@ -67,12 +62,12 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
-        name="offers"
+        name="rewards"
         options={{
-          title: "Offers",
+          title: "Rewards",
           tabBarIcon: ({ focused }) => (
             <TabBarIcon
-              title="Offers"
+              title="Rewards"
               icon={focused ? "pricetags" : "pricetags-outline"}
               focused={focused}
             />
@@ -93,15 +88,14 @@ export default function TabLayout() {
           ),
         }}
       />
-
       <Tabs.Screen
-        name="cart"
+        name="order"
         options={{
-          title: "Cart",
+          title: "Order",
           tabBarIcon: ({ focused }) => (
             <TabBarIcon
-              title="Cart"
-              icon={focused ? "cart" : "cart-outline"}
+              title="Order"
+              icon={focused ? "receipt" : "receipt-outline"}
               focused={focused}
             />
           ),

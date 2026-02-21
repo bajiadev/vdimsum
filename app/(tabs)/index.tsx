@@ -13,7 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { FeaturedItemCard } from "@/components/FeaturedItemCard";
 import Header from "@/components/Header";
 import { images } from "@/constants";
-import { getFeaturedMenuItems } from "@/lib/firebase";
+import { getFeaturedMenuItems, getOffers } from "@/lib/firebase";
 import useAuthStore from "@/store/auth.store";
 
 import OrderCard from "@/components/OrderCard";
@@ -25,11 +25,13 @@ import { useOrdersStore } from "@/store/orders.store";
 
 export default function Index() {
   const [featured, setFeatured] = useState<any[]>([]);
+  const [offers, setOffers] = useState<any[]>([]);
   const [loadingFeatured, setLoadingFeatured] = useState(true);
+  const [loadingOffers, setLoadingOffers] = useState(true);
   const [loadingOrders, setLoadingOrders] = useState(true);
   const { orders, setOrders } = useOrdersStore();
   const latestOrder = orders[0];
-
+  const { user } = useAuthStore.getState();
   // 🔹 Load featured items
   useEffect(() => {
     const loadFeatured = async () => {
@@ -41,10 +43,22 @@ export default function Index() {
     loadFeatured();
   }, []);
 
+  useEffect(() => {
+    const loadOffers = async () => {
+      try {
+        const data = await getOffers();
+        setOffers(data);
+      } finally {
+        setLoadingOffers(false);
+      }
+    };
+
+    loadOffers();
+  }, []);
+
   // 🔹 Load user orders
   useEffect(() => {
     const loadOrders = async () => {
-      const { user } = useAuthStore.getState();
       if (!user) {
         setLoadingOrders(false);
         return;
@@ -54,9 +68,9 @@ export default function Index() {
       setLoadingOrders(false);
     };
     loadOrders();
-  }, []);
+  }, [user]);
 
-  if (loadingFeatured || loadingOrders) {
+  if (loadingFeatured || loadingOrders || loadingOffers) {
     return (
       <SafeAreaView>
         <Text>Loading...</Text>
@@ -68,27 +82,83 @@ export default function Index() {
     <SafeAreaView className="flex-1 bg-white">
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
         <Header onOrderPress={() => router.push("/shops")} />
-        <Pressable onPress={() => router.push("/(tabs)/offers")}>
-          <View className="flex flex-row-reverse bg-red-700 h-48 m-4 p-8 shadow-lg rounded-3xl overflow-hidden">
-            <View className={"h-full w-1/2"}>
-              <Image
-                source={offerImage}
-                className={"size-full rounded-full"}
-                resizeMode={"contain"}
-              />
-            </View>
 
-            <View className="offer-card__info">
-              <Text className="h1-bold text-white leading-tight">offers</Text>
-              <Image
-                source={images.arrowRight}
-                className="size-10"
-                resizeMode="contain"
-                tintColor="#ffffff"
-              />
-            </View>
-          </View>
-        </Pressable>
+        <View className="mt-2 mb-2">
+          {offers.length === 0 ? (
+            <Pressable onPress={() => router.push("../offers")}>
+              <View className="flex flex-row-reverse bg-orange-500 h-40 mx-4 p-6 shadow-lg rounded-3xl overflow-hidden">
+                <View className={"h-full w-1/2"}>
+                  <Image
+                    source={offerImage}
+                    className={"size-full rounded-full"}
+                    resizeMode={"contain"}
+                  />
+                </View>
+
+                <View className="justify-between">
+                  <Text className="h1-bold text-white leading-tight">
+                    Offers
+                  </Text>
+                  <Image
+                    source={images.arrowRight}
+                    className="size-10"
+                    resizeMode="contain"
+                    tintColor="#ffffff"
+                  />
+                </View>
+              </View>
+            </Pressable>
+          ) : (
+            <FlatList
+              data={offers}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={{ paddingLeft: 20, paddingRight: 8 }}
+              renderItem={({ item }) => (
+                <Pressable
+                  className="w-72 mr-3"
+                  onPress={() =>
+                    router.push({
+                      pathname: "/offers/[id]",
+                      params: { id: item.id },
+                    })
+                  }
+                >
+                  <View className="bg-orange-500 rounded-3xl p-5 min-h-[140px] flex-row items-center justify-between gap-3">
+                    <View className="flex-1">
+                      <Text
+                        className="text-white text-2xl font-bold leading-tight"
+                        numberOfLines={2}
+                      >
+                        {item.title}
+                      </Text>
+                      <Text
+                        className="text-white/90 text-sm mt-2"
+                        numberOfLines={2}
+                      >
+                        {item.description}
+                      </Text>
+                    </View>
+
+                    <Image
+                      source={
+                        item.image_url
+                          ? { uri: item.image_url }
+                          : item.imageUrl
+                            ? { uri: item.imageUrl }
+                            : offerImage
+                      }
+                      className="w-24 h-24 rounded-full"
+                      resizeMode="cover"
+                    />
+                  </View>
+                </Pressable>
+              )}
+            />
+          )}
+        </View>
+
         <Pressable onPress={() => router.push("/(tabs)/menu")}>
           <View className="flex flex-row bg-orange-500 h-48 m-4 p-8 gap-8 shadow-lg rounded-3xl overflow-hidden">
             <View className="h-full w-1/2">
@@ -115,15 +185,15 @@ export default function Index() {
             data={featured.slice(0, 4)}
             horizontal
             showsHorizontalScrollIndicator={false}
-            keyExtractor={(item) => item.$id}
+            keyExtractor={(item) => item.id}
             contentContainerStyle={{ paddingLeft: 20, paddingRight: 8 }}
             renderItem={({ item }) => (
               <FeaturedItemCard
                 item={item}
                 onPress={() =>
                   router.push({
-                    pathname: "/(modals)/product/[id]",
-                    params: { id: item.$id },
+                    pathname: "/product/[id]",
+                    params: { id: item.id },
                   })
                 }
               />
@@ -138,7 +208,7 @@ export default function Index() {
               order={latestOrder}
               key={latestOrder.id}
               onPress={() => router.push(`/orders/${latestOrder.id}`)}
-              hideReorder={true}
+              //hideReorder={true}
             />
           )}
         </View>

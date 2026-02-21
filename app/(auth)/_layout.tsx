@@ -1,18 +1,3 @@
-// import useAuthStore from "@/store/auth.store";
-// import { Redirect, Stack } from "expo-router";
-
-// export default function AuthLayout() {
-//   const { user } = useAuthStore();
-
-//   if (user) return <Redirect href="/" />;
-
-//   return (
-//     <Stack screenOptions={{ headerShown: false }}>
-//       <Stack.Screen name="sign-in" />
-//       <Stack.Screen name="sign-up" />
-//     </Stack>
-//   );
-// }
 import {
   View,
   Text,
@@ -23,39 +8,31 @@ import {
   ImageBackground,
   Image,
 } from "react-native";
-import { Redirect, Slot } from "expo-router";
+import { Redirect, Slot, Stack } from "expo-router";
 import { images } from "@/constants";
 import useAuthStore from "@/store/auth.store";
 
 export default function AuthLayout() {
-  const { user } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
 
-  if (user) return <Redirect href="/" />;
+  if (isAuthenticated) return <Redirect href="/(tabs)" />;
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
-      <ScrollView
-        className="bg-white h-full"
-        keyboardShouldPersistTaps="handled"
-      >
-        <View
-          className="w-full relative"
-          style={{ height: Dimensions.get("screen").height / 2.25 }}
-        >
-          <ImageBackground
-            source={images.loginGraphic}
-            className="size-full rounded-b-lg"
-            resizeMode="stretch"
-          />
-          <Image
-            source={images.logo}
-            className="self-center size-48 absolute -bottom-16 z-10"
-          />
-        </View>
-        <Slot />
-      </ScrollView>
-    </KeyboardAvoidingView>
-  );
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <ScrollView className="bg-white h-full" keyboardShouldPersistTaps="handled">
+              <View className="w-full relative" style={{ height: Dimensions.get('screen').height / 2.25}}>
+                  <ImageBackground source={images.loginGraphic} className="size-full rounded-b-lg" resizeMode="stretch" />
+                  <Image source={images.logo} className="self-center size-48 absolute -bottom-16 z-10" />
+              </View>
+              <Slot />
+          </ScrollView>
+      </KeyboardAvoidingView>
+  )
+
+  // return (
+  //   <Stack>
+  //     <Stack.Screen name="sign-in" options={{ title: "" }} />
+  //     <Stack.Screen name="sign-up" options={{ title: "" }} />
+  //   </Stack>
+  // );
 }

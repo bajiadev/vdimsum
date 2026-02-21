@@ -5,15 +5,15 @@ import { formatCurrency } from "../lib/formatter";
 interface OrderCardProps {
   order: Order;
   onPress?: () => void;
-  onReorder?: () => void;
-  hideReorder?: boolean;
+  //onReorder?: () => void;
+  //hideReorder?: boolean;
 }
 
 export default function OrderCard({
   order,
   onPress,
-  onReorder,
-  hideReorder = false,
+  //onReorder,
+  //hideReorder = false,
 }: OrderCardProps) {
   return (
     <Pressable
@@ -21,26 +21,25 @@ export default function OrderCard({
       className="bg-white rounded-xl p-4 mb-3 shadow-sm"
     >
       <View className="flex-row justify-between items-center">
-        <Text className="font-bold text-base">
-          Order #{order.id.slice(0, 6)}
-        </Text>
+        <Text className="font-bold text-base">{order.orderNumber}</Text>
         <Text className="text-gray-500 text-sm">
           {new Date(order.createdAt.seconds * 1000).toDateString()}
         </Text>
       </View>
 
-      <Text className="text-gray-600 mt-1">
-        {order.items?.length ?? 0} items · {formatCurrency(order.total ?? 0)}
-      </Text>
-
-      {!hideReorder && (
-        <Pressable
-          onPress={onReorder}
-          className="mt-3 bg-black py-2 rounded-lg"
-        >
-          <Text className="text-white text-center font-semibold">Re-order</Text>
-        </Pressable>
-      )}
+      <View className="flex-row justify-between items-center">
+        <Text className="text-gray-600 mt-1">
+          {order.itemCount ?? 0} items · {formatCurrency(order.amount ?? 0)}
+        </Text>
+        <View className="flex-row items-center gap-2">
+          <Text className="text-gray-500 text-sm">
+            {order.orderType?.toUpperCase() || "N/A"}
+          </Text>
+          <Text className="text-gray-500 text-sm font-bold">
+            {order.status.toUpperCase()}
+          </Text>
+        </View>
+      </View>
     </Pressable>
   );
 }

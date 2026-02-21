@@ -1,24 +1,37 @@
 /* -------------------------------------------------------------------------- */
 /*                                   MENU                                     */
 /* -------------------------------------------------------------------------- */
+export interface MenuItemCustomizationOption {
+  id: string;
+  name: string;
+  price: number;
+}
+
 export interface MenuItemCustomization {
   id: string;
   name: string;
-  price?: number;
-  type: string;
+  type: "single" | "multiple";
   required?: boolean;
+  options: MenuItemCustomizationOption[];
 }
+
 export interface MenuItem {
   id: string;
   name: string;
   price: number;
   image_url?: string;
   description: string;
-  calories: number;
-  //protein: number;
   rating: number;
-  type: string;
+  category_ids: string[];
+  category_names: string[];
   customizations?: MenuItemCustomization[];
+  is_available: boolean;
+  is_featured: boolean;
+  is_redeemable?: boolean;
+  points_cost?: number;
+  reward_stock?: number;
+  created_at?: any;
+  updated_at?: any;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -29,6 +42,7 @@ export interface Category {
   id: string;
   name: string;
   description: string;
+  image_url?: string;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -40,56 +54,92 @@ export interface User {
   name: string;
   email: string;
   avatar: string;
+  phone?: string;
+  address?: string;
+  addressLine1?: string;
+  city?: string;
+  postcode?: string;
+  country?: string;
+  privacySettings?: {
+    shareUsageData?: boolean;
+    saveOrderHistory?: boolean;
+    useLocation?: boolean;
+    locationPermissionStatus?: "granted" | "denied" | "undetermined";
+  };
 }
 
-/* -------------------------------------------------------------------------- */
-/*                              CART & STORE                                  */
-/* -------------------------------------------------------------------------- */
-export const toCartCustomizations = (
-  customizations: MenuItem["customizations"] = [],
-): CartCustomization[] => {
-  return customizations.map((c) => ({
-    id: c.id,
-    name: c.name,
-    price: c.price ?? 0,
-    type: c.type,
-  }));
-};
-
-export interface CartCustomization {
+export interface PointTransaction {
   id: string;
-  name: string;
-  price: number;
-  type: string;
+  userId: string;
+  type: "earn" | "redeem";
+  amount: number;
+  description: string;
+  orderId?: string;
+  expiresAt: Timestamp;
+  createdAt: Timestamp;
 }
 
-export interface CartItemType {
+// Redeemable items are just menu items with reward fields
+export type RedeemableItem = MenuItem;
+
+/* -------------------------------------------------------------------------- */
+/*                              ORDER & STORE                                 */
+/* -------------------------------------------------------------------------- */
+export interface OrderCustomization {
+  groupId: string;
+  groupName: string;
+  optionId: string;
+  optionName: string;
+  price: number;
+}
+
+export interface OrderItemType {
   id: string; // menu item id
   name: string;
   price: number;
   image_url?: string;
   quantity: number;
-  customizations?: CartCustomization[];
+  customizations?: OrderCustomization[];
+  isRewardRedemption?: boolean;
+  rewardPointsCost?: number;
+  redemptionId?: string;
 }
 
-export interface CartStore {
-  items: CartItemType[];
+export interface OrderStore {
+  items: OrderItemType[];
   orderType: "delivery" | "pickup" | null;
   setOrderType: (type: "delivery" | "pickup") => void;
   addItem: (
     product: MenuItem,
     quantity?: number,
-    customizations?: CartCustomization[],
+    customizations?: OrderCustomization[],
   ) => void;
-  removeItem: (id: string, customizations: CartCustomization[]) => void;
-  increaseQty: (id: string, customizations: CartCustomization[]) => void;
-  decreaseQty: (id: string, customizations: CartCustomization[]) => void;
-  clearCart: () => void;
+  addRedeemedItem: (
+    item: RedeemableItem,
+    quantity?: number,
+    redemptionId?: string,
+  ) => void;
+  removeItem: (
+    id: string,
+    customizations: OrderCustomization[],
+    isRewardRedemption?: boolean,
+    redemptionId?: string,
+  ) => void;
+  increaseQty: (id: string, customizations: OrderCustomization[]) => void;
+  decreaseQty: (id: string, customizations: OrderCustomization[]) => void;
+  clearOrder: () => void;
   getTotalItems: () => number;
   getTotalPrice: () => number;
   createOrder: (userId: string) => Promise<string>;
   reorder: (
-    items: { id: string; name: string; price: number; quantity: number }[],
+    items: {
+      id: string;
+      name: string;
+      price: number;
+      quantity: number;
+      image_url?: string;
+      customizations?: OrderCustomization[];
+    }[],
   ) => void;
 }
 
@@ -158,7 +208,8 @@ export interface SignInParams {
 }
 
 export interface GetMenuParams {
-  category?: string;
+  categoryId?: string;
+  categoryName?: string;
   query?: string;
 }
 
@@ -167,22 +218,40 @@ export interface createPaymentIntentResponse {
 }
 
 export interface createPaymentIntentRequest {
-  // cartItems: CartItemType[];
-  cartItems: { id: string; quantity: number }[];
+  // orderItems: OrderItemType[];
+  orderItems: { id: string; quantity: number }[];
   orderId: string;
 }
 
+// Firestore order document (without items array)
 export type Order = {
   id: string;
+  orderNumber: string; // readable order number e.g. "260212-A1B2C3"
   userId: string;
-  items: {
-    id: string;
-    name: string;
-    price: number; // pence
-    quantity: number;
-    image?: string;
-  }[];
-  total: number; // pence
+  shopName: string | null;
+  shopAddress: string | null;
+  orderType: string | null;
+  itemCount: number; // total number of items in subcollection
+  amount: number; // pence
   status: "paid" | "pending" | "cancelled";
   createdAt: Timestamp;
+};
+
+// Firestore orderItem subcollection document
+export type OrderItem = {
+  id: string; // document ID
+  menuItemId: string;
+  name: string;
+  price: number; // pence
+  quantity: number;
+  image_url?: string;
+  customizations?: OrderCustomization[];
+  isRewardRedemption?: boolean;
+  rewardPointsCost?: number;
+  redemptionId?: string;
+};
+
+// Combined type for UI (order with items loaded)
+export type OrderWithItems = Order & {
+  items: OrderItem[];
 };

@@ -60,11 +60,12 @@ const getLatLng = (location: any) => {
 export default function ShopsPage() {
   const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
+  const { shopId: selectedShopId, orderType: selectedOrderType } =
+    useShopStore();
   const [userLocation, setUserLocation] = useState<{
     latitude: number;
     longitude: number;
   } | null>(null);
-  const [selected, setSelected] = useState<boolean>(false);
   const initialLocation: Region = {
     latitude: 51.36268,
     longitude: -0.16778,
@@ -111,7 +112,6 @@ export default function ShopsPage() {
           const location = await Location.getCurrentPositionAsync({
             accuracy: Location.Accuracy.Highest,
           });
-          console.log("User location:", location.coords);
           setUserLocation({
             latitude: location.coords.latitude,
             longitude: location.coords.longitude,
@@ -182,10 +182,6 @@ export default function ShopsPage() {
 
     fetchShops();
   }, [userLocation]);
-
-  useEffect(() => {
-    console.log("Shops loaded:", shops);
-  }, [shops]);
 
   function formatUKAddress(a: any) {
     return [
@@ -317,25 +313,29 @@ export default function ShopsPage() {
                   }
                   className={cn(
                     "py-3 px-4 rounded-lg border-2 border-gray-500",
-                    selected ? "bg-orange-500 border-orange-500" : "bg-white",
+                    selectedShopId === item.id &&
+                      selectedOrderType === "delivery"
+                      ? "bg-orange-500 border-orange-500"
+                      : "bg-white",
                   )}
                 >
                   <Text className="text-center font-semibold">🚚 Delivery</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  onPress={() => {
+                  onPress={() =>
                     handleOrderSelection(
                       item.id,
                       item.name,
                       item.address?.formatted || "",
                       "pickup",
-                    );
-                    setSelected(true);
-                  }}
+                    )
+                  }
                   className={cn(
                     "py-3 px-4 rounded-lg border-2 border-gray-500",
-                    selected ? "bg-orange-500 border-orange-500" : "bg-white",
+                    selectedShopId === item.id && selectedOrderType === "pickup"
+                      ? "bg-orange-500 border-orange-500"
+                      : "bg-white",
                   )}
                 >
                   <Text className="text-center font-semibold">🏪 Pickup</Text>

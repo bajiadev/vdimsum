@@ -1,16 +1,14 @@
 import { useState } from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { Text, TouchableOpacity, View } from "react-native";
 
-export default function CartFooter({ onAddToCart }) {
+export default function OrderFooter({ onAddToOrder }) {
   const [quantity, setQuantity] = useState(1);
 
-  const increment = () => setQuantity(q => q + 1);
-  const decrement = () => setQuantity(q => Math.max(1, q)); // min 1
+  const increment = () => setQuantity((q) => q + 1);
+  const decrement = () => setQuantity((q) => Math.max(1, q));
 
   return (
     <View className="flex-row items-center justify-between p-4 bg-white border-t border-gray-200">
-      
-      {/* Quantity selector */}
       <View className="flex-row items-center bg-gray-100 rounded-full px-3 py-1">
         <TouchableOpacity onPress={decrement} className="px-2">
           <Text className="text-xl font-bold">-</Text>
@@ -23,12 +21,11 @@ export default function CartFooter({ onAddToCart }) {
         </TouchableOpacity>
       </View>
 
-      {/* Add to Cart button */}
       <TouchableOpacity
-        onPress={() => onAddToCart(quantity)}
+        onPress={() => onAddToOrder(quantity)}
         className="bg-orange-500 px-6 py-3 rounded-full"
       >
-        <Text className="text-white font-bold text-lg">Add to Cart</Text>
+        <Text className="text-white font-bold text-lg">Add to Order</Text>
       </TouchableOpacity>
     </View>
   );

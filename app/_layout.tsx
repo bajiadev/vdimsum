@@ -1,9 +1,9 @@
+import "./global.css";
 import useAuthStore from "@/store/auth.store";
 import { StripeProvider } from "@stripe/stripe-react-native";
 import { useFonts } from "expo-font";
 import { SplashScreen, Stack } from "expo-router";
 import { useEffect } from "react";
-import "./global.css";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -23,8 +23,11 @@ export default function RootLayout() {
   }, [fontsLoaded, error]);
 
   useEffect(() => {
-    fetchAuthenticatedUser();
-  }, []);
+    const unsubscribe = fetchAuthenticatedUser();
+    return () => {
+      if (typeof unsubscribe === "function") unsubscribe();
+    };
+  }, [fetchAuthenticatedUser]);
 
   if (!fontsLoaded || isLoading) return null;
 
@@ -33,26 +36,19 @@ export default function RootLayout() {
     throw new Error("Missing Stripe publishable key");
   }
 
-  // return (
-  //   <StripeProvider publishableKey={publishableKey}>
-  //     <Stack screenOptions={{ headerShown: false }} />
-
-  //   </StripeProvider>
-  // );
-
   return (
     <StripeProvider publishableKey={publishableKey}>
       <Stack>
-        {/* Auth screens */}
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-
-        {/* Bottom tabs */}
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-
-        {/* Stack screens (back arrow shown) */}
-        <Stack.Screen name="orders" options={{ title: "My Orders" }} />
-        <Stack.Screen name="settings" options={{ title: "Settings" }} />
+        <Stack.Screen name="order" options={{ headerShown: false }} />
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen name="orders" options={{ headerShown: false }} />
+        <Stack.Screen name="settings/index" options={{ title: "Settings" }} />
+        <Stack.Screen name="rewards" options={{ headerShown: false }} />
         <Stack.Screen name="shops" options={{ headerShown: false }} />
+        <Stack.Screen name="category/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="product/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="offers" options={{ headerShown: false }} />
       </Stack>
     </StripeProvider>
   );

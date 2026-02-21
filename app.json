@@ -11,11 +11,13 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "This app needs your location to show nearby restaurants and calculate distances."
+        "NSLocationWhenInUseUsageDescription": "This app needs your location to show nearby restaurants and calculate distances.",
+        "ITSAppUsesNonExemptEncryption": false
       },
       "config": {
-        "googleMapsApiKey": "AIzaSyDON8ZArcIE284wjwaLA-4IHhAL3551bQw"
-      }
+        "googleMapsApiKey": "AIzaSyAbqacuQdaQeYgPrx0kWlFJviIpF0tGYrI"
+      },
+      "bundleIdentifier": "com.anonymous.vdimsum"
     },
     "android": {
       "adaptiveIcon": {
@@ -28,7 +30,7 @@
       ],
       "config": {
         "googleMaps": {
-          "apiKey": "AIzaSyAbqacuQdaQeYgPrx0kWlFJviIpF0tGYrI"
+          "apiKey": "AIzaSyBlk3807kOdm69zFrmj2oSbZtKs6pAhlUM"
         }
       },
       "edgeToEdgeEnabled": true,
@@ -50,6 +52,13 @@
           "dark": {
             "backgroundColor": "#000000"
           }
+        }
+      ],
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "your_merchant_identifier",
+          "enableGooglePay": true
         }
       ]
     ],

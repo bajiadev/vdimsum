@@ -1,15 +1,8 @@
 // store/menu.store.ts
-import { create } from "zustand";
-import { MenuItem } from "@/type";
 import { db } from "@/lib/firebase"; // your firebase.ts
-import {
-  doc,
-  getDoc,
-  getDocs,
-  collection,
-  query,
-  where,
-} from "firebase/firestore";
+import { MenuItem } from "@/type";
+import { collection, doc, getDoc, getDocs, query } from "firebase/firestore";
+import { create } from "zustand";
 
 type Menu = {
   items: Record<string, MenuItem>;
@@ -28,9 +21,14 @@ const mapMenuItem = (docSnap: any): MenuItem => {
     price: data.price,
     image_url: data.image_url,
     description: data.description,
-    calories: data.calories,
     rating: data.rating,
-    type: data.type,
+    category_ids: data.category_ids || [],
+    category_names: data.category_names || [],
+    customizations: data.customizations || [],
+    is_available: data.is_available ?? true,
+    is_featured: data.is_featured ?? false,
+    created_at: data.created_at,
+    updated_at: data.updated_at,
   };
 };
 

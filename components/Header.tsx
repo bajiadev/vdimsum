@@ -1,19 +1,19 @@
 import useShopStore from "@/store/shop.store";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { router } from "expo-router";
 import { Text, TouchableOpacity, View } from "react-native";
-import CartButton from "./CartButton";
+import OrderButton from "./OrderButton";
 
 interface HeaderProps {
   onOrderPress?: () => void;
 }
 
 export default function Header({ onOrderPress }: HeaderProps) {
-  const router = useRouter();
   const { shopName, shopAddress, orderType } = useShopStore();
 
-  const headerText =
-    !orderType? "Order info" : orderType == "delivery"
+  const headerText = !orderType
+    ? "Order info"
+    : orderType == "delivery"
       ? `Deliver from ${shopName || ""}`
       : `Pickup from ${shopName || ""}`;
 
@@ -31,7 +31,7 @@ export default function Header({ onOrderPress }: HeaderProps) {
         </View>
       </TouchableOpacity>
 
-      <CartButton />
+      <OrderButton />
     </View>
   );
 }

@@ -1,16 +1,123 @@
-import { View, Text, Alert } from "react-native";
+import { View, Text, Alert, Platform } from "react-native";
 import { Link, router } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import CustomInput from "@/components/CustomInput";
 import CustomButton from "@/components/CustomButton";
+import * as WebBrowser from "expo-web-browser";
+import * as Google from "expo-auth-session/providers/google";
+import * as Facebook from "expo-auth-session/providers/facebook";
 
 import { auth, db } from "@/lib/firebase"; // Firebase imports
-import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import {
+  createUserWithEmailAndPassword,
+  FacebookAuthProvider,
+  GoogleAuthProvider,
+  signInWithCredential,
+  updateProfile,
+} from "firebase/auth";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+
+WebBrowser.maybeCompleteAuthSession();
 
 const SignUp = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isOAuthSubmitting, setIsOAuthSubmitting] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", password: "" });
+
+  const googleWebClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || "";
+  const googleAndroidClientId =
+    process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || googleWebClientId;
+  const googleIosClientId =
+    process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || googleWebClientId;
+
+  const [googleRequest, googleResponse, promptGoogleAuth] =
+    Google.useAuthRequest({
+      webClientId: googleWebClientId || "missing-google-web-client-id",
+      androidClientId:
+        googleAndroidClientId || "missing-google-android-client-id",
+      iosClientId: googleIosClientId || "missing-google-ios-client-id",
+    });
+
+  const [facebookRequest, facebookResponse, promptFacebookAuth] =
+    Facebook.useAuthRequest({
+      clientId: process.env.EXPO_PUBLIC_FACEBOOK_APP_ID || "",
+      scopes: ["public_profile", "email"],
+    });
+
+  const ensureUserDoc = async (firebaseUser: any) => {
+    const userDocRef = doc(db, "users", firebaseUser.uid);
+    const userDocSnap = await getDoc(userDocRef);
+
+    if (!userDocSnap.exists()) {
+      await setDoc(userDocRef, {
+        uid: firebaseUser.uid,
+        name: firebaseUser.displayName || "",
+        email: firebaseUser.email,
+        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(
+          firebaseUser.displayName || "User",
+        )}&background=random`,
+        createdAt: serverTimestamp(),
+      });
+    }
+  };
+
+  useEffect(() => {
+    const signInWithGoogleCredential = async () => {
+      if (googleResponse?.type !== "success") return;
+
+      const idToken =
+        googleResponse.authentication?.idToken ||
+        googleResponse.params?.id_token;
+
+      if (!idToken) {
+        Alert.alert("Error", "Google sign-in failed. Missing ID token.");
+        return;
+      }
+
+      setIsOAuthSubmitting(true);
+      try {
+        const credential = GoogleAuthProvider.credential(idToken);
+        const userCredential = await signInWithCredential(auth, credential);
+        await ensureUserDoc(userCredential.user);
+        router.replace("/(tabs)");
+      } catch (error: any) {
+        Alert.alert("Error", error?.message || "Google sign-in failed");
+      } finally {
+        setIsOAuthSubmitting(false);
+      }
+    };
+
+    signInWithGoogleCredential();
+  }, [googleResponse]);
+
+  useEffect(() => {
+    const signInWithFacebookCredential = async () => {
+      if (facebookResponse?.type !== "success") return;
+
+      const accessToken =
+        facebookResponse.authentication?.accessToken ||
+        facebookResponse.params?.access_token;
+
+      if (!accessToken) {
+        Alert.alert("Error", "Facebook sign-in failed. Missing access token.");
+        return;
+      }
+
+      setIsOAuthSubmitting(true);
+      try {
+        const credential = FacebookAuthProvider.credential(accessToken);
+        const userCredential = await signInWithCredential(auth, credential);
+        await ensureUserDoc(userCredential.user);
+        router.replace("/(tabs)");
+      } catch (error: any) {
+        Alert.alert("Error", error?.message || "Facebook sign-in failed");
+      } finally {
+        setIsOAuthSubmitting(false);
+      }
+    };
+
+    signInWithFacebookCredential();
+  }, [facebookResponse]);
 
   const submit = async () => {
     const { name, email, password } = form;
@@ -18,7 +125,7 @@ const SignUp = () => {
     if (!name || !email || !password) {
       return Alert.alert(
         "Error",
-        "Please enter a valid name, email address & password."
+        "Please enter a valid name, email address & password.",
       );
     }
 
@@ -29,7 +136,7 @@ const SignUp = () => {
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
-        password
+        password,
       );
       const firebaseUser = userCredential.user;
 
@@ -42,13 +149,13 @@ const SignUp = () => {
         name,
         email,
         avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(
-          name
+          name,
         )}&background=random`, // default avatar
         createdAt: serverTimestamp(),
       });
 
       // 4️⃣ Navigate to home
-      router.replace("/");
+      router.replace("/(tabs)");
     } catch (error: any) {
       Alert.alert("Error", error.message || "Something went wrong");
     } finally {
@@ -83,10 +190,61 @@ const SignUp = () => {
 
       <CustomButton title="Sign Up" isLoading={isSubmitting} onPress={submit} />
 
+      <CustomButton
+        title="Continue with Google"
+        isLoading={isOAuthSubmitting}
+        onPress={async () => {
+          const hasRequiredGoogleClientId =
+            Platform.OS === "android"
+              ? !!googleAndroidClientId
+              : Platform.OS === "ios"
+                ? !!googleIosClientId
+                : !!googleWebClientId;
+
+          if (!hasRequiredGoogleClientId) {
+            Alert.alert(
+              "Missing config",
+              "Set Google client IDs in .env (EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID / EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID / EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID).",
+            );
+            return;
+          }
+
+          if (!googleRequest) {
+            Alert.alert("Please wait", "Google auth is still loading.");
+            return;
+          }
+
+          await promptGoogleAuth();
+        }}
+      />
+
+      <CustomButton
+        title="Continue with Facebook"
+        isLoading={isOAuthSubmitting}
+        onPress={async () => {
+          if (!process.env.EXPO_PUBLIC_FACEBOOK_APP_ID) {
+            Alert.alert(
+              "Missing config",
+              "Set EXPO_PUBLIC_FACEBOOK_APP_ID in .env",
+            );
+            return;
+          }
+
+          if (!facebookRequest) {
+            Alert.alert("Please wait", "Facebook auth is still loading.");
+            return;
+          }
+
+          await promptFacebookAuth();
+        }}
+      />
+
       <View className="flex justify-center mt-5 flex-row gap-2">
-        <Text className="base-regular text-gray-100">Already have an account?</Text>
-        <Link href="/sign-in" className="base-bold text-primary">
-          Sign In
+        <Text className="base-regular text-gray-100">
+          Already have an account?
+        </Text>
+        <Link href="/(auth)/sign-in" className="base-bold text-primary">
+          <Text>Sign In</Text>
         </Link>
       </View>
     </View>
@@ -94,4 +252,3 @@ const SignUp = () => {
 };
 
 export default SignUp;
-
