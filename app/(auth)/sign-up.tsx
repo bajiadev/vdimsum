@@ -1,3 +1,8 @@
+export const config = {
+  title: "",
+  headerBackVisible: true,
+  headerTitle: "",
+};
 import { View, Text, Alert, Platform } from "react-native";
 import { Link, router } from "expo-router";
 import { useEffect, useState } from "react";

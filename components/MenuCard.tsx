@@ -29,11 +29,11 @@ const MenuCard = ({ item }: { item: MenuItem }) => {
           { text: "Cancel", onPress: () => {} },
           {
             text: "Sign In",
-            onPress: () => router.push("/(tabs)/(auth)/sign-in"),
+            onPress: () => router.push("/(auth)/sign-in"),
           },
           {
             text: "Sign Up",
-            onPress: () => router.push("/(tabs)/(auth)/sign-up"),
+            onPress: () => router.push("/(auth)/sign-up"),
           },
         ],
       );

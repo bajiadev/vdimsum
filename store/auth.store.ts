@@ -35,7 +35,7 @@ const useAuthStore = create<AuthStore>((set, get) => ({
   logout: async () => {
     await signOut(); // firebase auth signOut
     clearSessionState();
-    set({ user: null, isAuthenticated: false });
+    set({ user: null, isAuthenticated: false, isLoading: false });
   },
   fetchAuthenticatedUser: () => {
     if (authUnsubscribe) {

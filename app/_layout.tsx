@@ -2,13 +2,13 @@ import "./global.css";
 import useAuthStore from "@/store/auth.store";
 import { StripeProvider } from "@stripe/stripe-react-native";
 import { useFonts } from "expo-font";
-import { SplashScreen, Stack } from "expo-router";
+import { SplashScreen, Stack, Redirect } from "expo-router";
 import { useEffect } from "react";
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const { isLoading, fetchAuthenticatedUser } = useAuthStore();
+  const { isLoading, fetchAuthenticatedUser, isAuthenticated } = useAuthStore();
   const [fontsLoaded, error] = useFonts({
     "QuickSand-Bold": require("../assets/fonts/Quicksand-Bold.ttf"),
     "QuickSand-Medium": require("../assets/fonts/Quicksand-Medium.ttf"),
@@ -36,12 +36,13 @@ export default function RootLayout() {
     throw new Error("Missing Stripe publishable key");
   }
 
+  // Key the Stack by isAuthenticated to force remount on auth change
   return (
     <StripeProvider publishableKey={publishableKey}>
-      <Stack>
+      <Stack key={isAuthenticated ? "auth-yes" : "auth-no"}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="order" options={{ headerShown: false }} />
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen name="(auth)" options={{ title: " " }} />
         <Stack.Screen name="orders" options={{ headerShown: false }} />
         <Stack.Screen name="settings/index" options={{ title: "Settings" }} />
         <Stack.Screen name="rewards" options={{ headerShown: false }} />

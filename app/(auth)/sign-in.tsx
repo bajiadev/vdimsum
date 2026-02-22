@@ -1,12 +1,16 @@
+export const config = {
+  title: "",
+  headerBackVisible: true,
+  headerTitle: "",
+};
 import { View, Text, Alert, Platform } from "react-native";
-import { Link, router, useRootNavigationState } from "expo-router";
+import { Link, router, useSegments } from "expo-router";
 import { use, useEffect, useState } from "react";
 import CustomInput from "@/components/CustomInput";
 import CustomButton from "@/components/CustomButton";
 import * as WebBrowser from "expo-web-browser";
 import * as Google from "expo-auth-session/providers/google";
 import * as Facebook from "expo-auth-session/providers/facebook";
-
 import { auth, db } from "@/lib/firebase";
 import {
   FacebookAuthProvider,
@@ -14,7 +18,8 @@ import {
   signInWithCredential,
   signInWithEmailAndPassword,
 } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import useAuthStore from "@/store/auth.store";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -22,8 +27,9 @@ const SignIn = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOAuthSubmitting, setIsOAuthSubmitting] = useState(false);
   const [form, setForm] = useState({ email: "", password: "" });
-  const [pendingNavigation, setPendingNavigation] = useState<boolean>(false);
-  const navigationState = useRootNavigationState();
+  const setUser = useAuthStore((state) => state.setUser);
+
+  const segments = useSegments();
 
   const googleWebClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || "";
   const googleAndroidClientId =
@@ -47,22 +53,32 @@ const SignIn = () => {
 
   const ensureUserDoc = async (firebaseUser: any) => {
     const userDocRef = doc(db, "users", firebaseUser.uid);
-    const userDocSnap = await getDoc(userDocRef);
-
+    let userDocSnap = await getDoc(userDocRef);
     if (!userDocSnap.exists()) {
       await setDoc(userDocRef, {
         uid: firebaseUser.uid,
         email: firebaseUser.email,
         name: firebaseUser.displayName || "",
-        avatar: `https://ui-avatars.com/api/?name=${firebaseUser.displayName || "User"}&background=random`,
-        createdAt: new Date(),
+        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(firebaseUser.displayName || "User")}&background=random`,
+        createdAt: serverTimestamp(),
       });
+      userDocSnap = await getDoc(userDocRef);
+    }
+    if (userDocSnap.exists()) {
+      const userData = userDocSnap.data();
+      setUser({
+        id: firebaseUser.uid,
+        name: userData.name,
+        email: userData.email,
+        avatar: userData.avatar,
+      });
+    } else {
+      throw new Error("User document could not be created or found.");
     }
   };
 
   useEffect(() => {
     const signInWithGoogleCredential = async () => {
-      if (!navigationState?.key) return;
       if (googleResponse?.type !== "success") return;
 
       const idToken =
@@ -79,7 +95,8 @@ const SignIn = () => {
         const credential = GoogleAuthProvider.credential(idToken);
         const userCredential = await signInWithCredential(auth, credential);
         await ensureUserDoc(userCredential.user);
-        router.replace("/(tabs)");
+
+        //router.replace("/(tabs)");
       } catch (error: any) {
         Alert.alert("Error", error?.message || "Google sign-in failed");
       } finally {
@@ -88,11 +105,10 @@ const SignIn = () => {
     };
 
     signInWithGoogleCredential();
-  }, [googleResponse, navigationState]);
+  }, [googleResponse]);
 
   useEffect(() => {
     const signInWithFacebookCredential = async () => {
-      if (!navigationState.key) return;
       if (facebookResponse?.type !== "success") return;
 
       const accessToken =
@@ -109,7 +125,7 @@ const SignIn = () => {
         const credential = FacebookAuthProvider.credential(accessToken);
         const userCredential = await signInWithCredential(auth, credential);
         await ensureUserDoc(userCredential.user);
-        router.replace("/(tabs)");
+        //router.replace("/(tabs)");
       } catch (error: any) {
         Alert.alert("Error", error?.message || "Facebook sign-in failed");
       } finally {
@@ -118,20 +134,17 @@ const SignIn = () => {
     };
 
     signInWithFacebookCredential();
-  }, [facebookResponse, navigationState]);
+  }, [facebookResponse]);
 
   const submit = async () => {
     const { email, password } = form;
-
     if (!email || !password) {
       return Alert.alert(
         "Error",
         "Please enter a valid email address & password.",
       );
     }
-
     setIsSubmitting(true);
-
     try {
       const userCredential = await signInWithEmailAndPassword(
         auth,
@@ -139,21 +152,28 @@ const SignIn = () => {
         password,
       );
       const firebaseUser = userCredential.user;
-      await ensureUserDoc(firebaseUser);
-      router.replace("/(tabs)");
+      try {
+        await ensureUserDoc(firebaseUser);
+        console.log("Sement after successful sign-in:", segments);
+        console.log("Router state after successful sign-in:", router);
+        router.replace("/(tabs)");
+      } catch (docError) {
+        console.warn(
+          "User doc creation failed, redirecting to sign-up.",
+          docError,
+        );
+        Alert.alert(
+          "Profile Required",
+          "Please complete your profile to continue.",
+        );
+        router.replace("/(auth)/sign-up");
+      }
     } catch (error: any) {
-      // console.error(error.code, error.message);
       Alert.alert("Error", "Invalid username or password");
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  // useEffect(() => {
-  //   if (pendingNavigation && navigationState?.key) {
-  //     router.replace("/(tabs)");
-  //   }
-  // }, [pendingNavigation, navigationState]);
 
   return (
     <View className="gap-10 bg-white rounded-lg p-5 mt-5">

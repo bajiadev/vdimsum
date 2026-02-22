@@ -106,7 +106,7 @@ const Order = () => {
         orderItems: orderItemsPayload,
         orderId,
       });
-      console.log("PaymentIntent created:", data);
+     
       const clientSecret = data.clientSecret;
       if (!clientSecret)
         throw new Error("PaymentIntent client secret not returned");
@@ -172,11 +172,11 @@ const Order = () => {
               <Text className="font-bold uppercase text-gray-900 text-center">
                 Order info
               </Text>
-              <Text className="mt-1 text-base font-semibold text-dark-100">
+              <Text className="mt-1 text-base font-semibold text-dark-100 text-center">
                 {orderInfoTitle}
               </Text>
               {shopAddress ? (
-                <Text className="mt-1 text-sm text-gray-600">
+                <Text className="mt-1 text-sm text-gray-600 text-center">
                   {shopAddress}
                 </Text>
               ) : null}
