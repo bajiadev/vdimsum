@@ -10,6 +10,7 @@
     "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
+      "usesAppleSignIn": true,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "This app needs your location to show nearby restaurants and calculate distances.",
         "ITSAppUsesNonExemptEncryption": false
@@ -60,7 +61,21 @@
           "merchantIdentifier": "your_merchant_identifier",
           "enableGooglePay": true
         }
-      ]
+      ],
+      "@react-native-google-signin/google-signin",
+      [
+        "react-native-fbsdk-next",
+        {
+          "appID": "1580761419872570",
+          "displayName": "vdimsum test",
+          "scheme": "fb1580761419872570",
+          "clientToken": "c0b125878548882ecf4012171aaedeb3",
+          "advertiserIDCollectionEnabled": true,
+          "autoLogAppEventsEnabled": true,
+          "isAutoInitEnabled": true
+        }
+      ],
+      ["expo-apple-authentication"]
     ],
     "experiments": {
       "typedRoutes": true,

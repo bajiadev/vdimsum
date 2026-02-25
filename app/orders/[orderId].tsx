@@ -1,7 +1,6 @@
 import CustomButton from "@/components/CustomButton";
-import CustomHeader from "@/components/CustomHeader";
-import { formatCurrency } from "@/lib/formatter";
 import { getOrderDetails } from "@/lib/firebase";
+import { formatCurrency } from "@/lib/formatter";
 import { useOrderStore } from "@/store/order.store";
 import { useOrdersStore } from "@/store/orders.store";
 import { Order, OrderItem } from "@/type";
@@ -227,12 +226,11 @@ export default function OrderDetail() {
 
             <CustomButton
               title="Re-order"
-              style="bg-black mt-4"
+              style="mt-4"
               onPress={handleReorder}
             />
           </View>
         }
-     
       />
     </SafeAreaView>
   );

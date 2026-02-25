@@ -19,12 +19,12 @@ import {
 } from "react-native";
 
 export default function ProductDetails() {
-  const [isFavourite, setIsFavourite] = useState(false);
+  //const [isFavourite, setIsFavourite] = useState(false);
   const [selectedCustomizations, setSelectedCustomizations] = useState<
     Record<string, string[]>
   >({});
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { getMenuItemById, fetchMenuItemById } = useMenu();
+  const { fetchMenuItemById } = useMenu();
   const { user } = useAuthStore();
   const { shopId, orderType } = useShopStore();
 
@@ -159,13 +159,13 @@ export default function ProductDetails() {
           <TouchableOpacity onPress={() => router.back()}>
             <Ionicons name="arrow-back-circle" size={32} color="orange" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setIsFavourite(!isFavourite)}>
+          {/* <TouchableOpacity onPress={() => setIsFavourite(!isFavourite)}>
             <Ionicons
               name={isFavourite ? "heart" : "heart-outline"}
               size={32}
               color="orange"
             />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
         <View className="w-full">
           {imageUrl && (

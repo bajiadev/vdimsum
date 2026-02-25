@@ -7,20 +7,12 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:11973230086:android:3b88e3ea27a3b645d40d87",
+        "mobilesdk_app_id": "1:11973230086:android:7e2c7d0cb824ea77d40d87",
         "android_client_info": {
-          "package_name": "com.vdimsumdumpling.takeaway"
+          "package_name": "com.anonymous.vdimsum"
         }
       },
       "oauth_client": [
-        {
-          "client_id": "11973230086-kr95pd6u5korci1cq5mehr7i71rv57sg.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.vdimsumdumpling.takeaway",
-            "certificate_hash": "5a7af472023eae5122b0ddba7938a431c9b84620"
-          }
-        },
         {
           "client_id": "11973230086-3tnu09sk7tcpg1diq20si0aa0kktuaj8.apps.googleusercontent.com",
           "client_type": 3
@@ -28,7 +20,7 @@
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyAZuSd-Za2J4sUccvhwRkdXAKSYVHGaybk"
+          "current_key": "AIzaSyBlk3807kOdm69zFrmj2oSbZtKs6pAhlUM"
         }
       ],
       "services": {
@@ -39,10 +31,10 @@
               "client_type": 3
             },
             {
-              "client_id": "11973230086-ehl8ri69b151m9vujongbirkjp41vklk.apps.googleusercontent.com",
+              "client_id": "11973230086-injh5rhmklf64oartsg56rc73qis2v7m.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
-                "bundle_id": "com.vdimsumdumpling.takeaway"
+                "bundle_id": "com.anonymous.vdimsum"
               }
             }
           ]

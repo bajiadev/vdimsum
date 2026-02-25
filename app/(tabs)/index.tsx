@@ -63,11 +63,9 @@ export default function Index() {
         setLoadingOrders(false);
         return;
       }
-      console.log("Loading orders for user: No 1");
       const data = await getUserOrders(user.id);
       setOrders(data);
       setLoadingOrders(false);
-      console.log("Orders loaded: No 2");
     };
     loadOrders();
   }, [user]);

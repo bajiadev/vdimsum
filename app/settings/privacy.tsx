@@ -4,6 +4,7 @@ import { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Alert, Linking, Switch, Text, View } from "react-native";
 import * as Location from "expo-location";
+import { Stack } from "expo-router";
 
 const PrivacyRow = ({
   label,
@@ -146,7 +147,6 @@ export default function PrivacyScreen() {
         options={{
           title: "",
           headerTitle: "",
-          headerBackTitleVisible: false,
         }}
       />
       <SafeAreaView className="flex-1 bg-white">

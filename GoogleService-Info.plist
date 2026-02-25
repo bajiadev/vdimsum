@@ -3,9 +3,11 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>11973230086-ehl8ri69b151m9vujongbirkjp41vklk.apps.googleusercontent.com</string>
+	<string>11973230086-injh5rhmklf64oartsg56rc73qis2v7m.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.11973230086-ehl8ri69b151m9vujongbirkjp41vklk</string>
+	<string>com.googleusercontent.apps.11973230086-injh5rhmklf64oartsg56rc73qis2v7m</string>
+	<key>ANDROID_CLIENT_ID</key>
+	<string>11973230086-d69cir6v1jsppb7e4hrihgbpofanmbu9.apps.googleusercontent.com</string>
 	<key>API_KEY</key>
 	<string>AIzaSyBKcCdqhedXEH6wGia-caJbrQ7jHQKRNeY</string>
 	<key>GCM_SENDER_ID</key>
@@ -13,7 +15,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.vdimsumdumpling.takeaway</string>
+	<string>com.anonymous.vdimsum</string>
 	<key>PROJECT_ID</key>
 	<string>takeaway-app-e4220</string>
 	<key>STORAGE_BUCKET</key>
@@ -29,6 +31,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:11973230086:ios:28472c9aaf666eb2d40d87</string>
+	<string>1:11973230086:ios:856d21f49eb395dfd40d87</string>
 </dict>
 </plist>

@@ -180,7 +180,7 @@ export default function AccountScreen() {
               <CustomButton
                 title="Cancel"
                 onPress={cancelEdit}
-                style="bg-gray-300"
+                style="bg-gray-600"
                 textStyle="text-black"
               />
             </View>

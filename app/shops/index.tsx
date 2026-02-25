@@ -207,7 +207,6 @@ export default function ShopsPage() {
       shopAddress,
       orderType: type,
     });
-    console.log(`Selected shop: ${shopName}, Order type: ${type}`);
     // Navigate back
     router.back();
   };
