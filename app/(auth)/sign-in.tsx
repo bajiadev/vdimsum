@@ -9,23 +9,45 @@ import { auth, db } from "@/lib/firebase";
 import useAuthStore from "@/store/auth.store";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import * as AppleAuthentication from "expo-apple-authentication";
+import * as Crypto from "expo-crypto";
+import { getRandomBytes } from "expo-random";
 import { Link, router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import {
   FacebookAuthProvider,
   GoogleAuthProvider,
+  OAuthProvider,
   signInWithCredential,
   signInWithEmailAndPassword,
-  OAuthProvider
 } from "firebase/auth";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
-import { Alert, Text, View } from "react-native";
-import { AccessToken, LoginManager } from "react-native-fbsdk-next";
+import { Alert, Platform, Text, View } from "react-native";
+import {
+  AccessToken,
+  AuthenticationToken,
+  LoginManager,
+} from "react-native-fbsdk-next";
 
 WebBrowser.maybeCompleteAuthSession();
 
 const SignIn = () => {
+  // Auto-login: check for existing Firebase user
+  useEffect(() => {
+    if (auth.currentUser) {
+      // Restore user info in store
+      const firebaseUser = auth.currentUser;
+      setUser({
+        id: firebaseUser.uid,
+        name: firebaseUser.displayName || "",
+        email: firebaseUser.email || "",
+        avatar:
+          firebaseUser.photoURL ||
+          `https://ui-avatars.com/api/?name=${encodeURIComponent(firebaseUser.displayName || "User")}&background=random`,
+      });
+      router.replace("/(tabs)");
+    }
+  }, []);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleOAuthSubmitting, setIsGoogleOAuthSubmitting] = useState(false);
   const [isFacebookOAuthSubmitting, setIsFacebookOAuthSubmitting] =
@@ -42,10 +64,6 @@ const SignIn = () => {
       offlineAccess: false,
       forceCodeForRefreshToken: false,
     });
-    console.log(
-      "Google Sign-In configured with Web Client ID:",
-      googleWebClientId,
-    );
   }, [googleWebClientId]);
 
   const ensureUserDoc = async (firebaseUser: any) => {
@@ -82,28 +100,27 @@ const SignIn = () => {
 
   const handleGoogleSignIn = async () => {
     setIsGoogleOAuthSubmitting(true);
-    console.log("Starting Google Sign-In process...", isGoogleOAuthSubmitting);
     try {
       await GoogleSignin.hasPlayServices({
         showPlayServicesUpdateDialog: true,
       });
-      console.log("Google Play Services are available.");
-      const idToken = (await GoogleSignin.getTokens()).idToken;
-      if (!idToken) {
-        Alert.alert("Error", "Google sign-in failed. Missing ID token.");
-        setIsGoogleOAuthSubmitting(false);
-        return;
+      const userInfo = await GoogleSignin.signIn();
+      if (userInfo.type === "success") {
+        const user = userInfo.data;
+        const idToken = user.idToken;
+        if (!idToken) {
+          Alert.alert("Error", "Google sign-in failed. Missing ID token.");
+          setIsGoogleOAuthSubmitting(false);
+          return;
+        }
+        const credential = GoogleAuthProvider.credential(idToken);
+        const userCredential = await signInWithCredential(auth, credential);
+        await ensureUserDoc(userCredential.user);
+        router.replace("/(tabs)");
       }
-      const credential = GoogleAuthProvider.credential(idToken);
-      const userCredential = await signInWithCredential(auth, credential);
-      console.log(
-        "Google Sign-In successful, User Credential:",
-        userCredential,
-      );
-      await ensureUserDoc(userCredential.user);
-      router.replace("/(tabs)");
+
+      // const { idToken } = await GoogleSignin.getTokens();
     } catch (error: any) {
-      console.error("Google Sign-In error:", error);
       Alert.alert("Error", error?.message || "Google sign-in failed");
       router.replace("/(auth)/sign-up");
     } finally {
@@ -111,32 +128,71 @@ const SignIn = () => {
     }
   };
 
+  function generateNonce(length = 32) {
+    const bytes = getRandomBytes(length);
+    return Array.from(bytes)
+      .map((b) => (b as number).toString(16).padStart(2, "0"))
+      .join("");
+  }
+
   const handleFacebookSignIn = async () => {
     setIsFacebookOAuthSubmitting(true);
     try {
-      // Attempt login with permissions
-      const result = await LoginManager.logInWithPermissions([
-        "public_profile",
-        "email",
-      ]);
-      if (result.isCancelled) {
-        setIsFacebookOAuthSubmitting(false);
-        return;
+      let credential;
+      if (Platform.OS === "ios") {
+        // Generate raw nonce
+        const rawNonce = generateNonce();
+        // Hash the nonce (SHA-256)
+        const hashedNonce = await Crypto.digestStringAsync(
+          Crypto.CryptoDigestAlgorithm.SHA256,
+          rawNonce,
+        );
+        // Facebook login with hashed nonce
+        const result = await LoginManager.logInWithPermissions(
+          ["public_profile", "email"],
+          "limited",
+          hashedNonce,
+        );
+        if (result.isCancelled) return;
+        const authTokenResult =
+          await AuthenticationToken.getAuthenticationTokenIOS();
+        if (!authTokenResult?.authenticationToken) {
+          Alert.alert(
+            "Error",
+            "Facebook sign-in failed. Missing authentication token.",
+          );
+          return;
+        }
+        // Pass rawNonce to Firebase
+        const provider = new OAuthProvider("facebook.com");
+        credential = provider.credential({
+          idToken: authTokenResult.authenticationToken,
+          rawNonce: rawNonce,
+        });
+      } else {
+        // Android / normal login
+        const result = await LoginManager.logInWithPermissions([
+          "public_profile",
+          "email",
+        ]);
+        if (result.isCancelled) return;
+        const accessTokenResult = await AccessToken.getCurrentAccessToken();
+        if (!accessTokenResult?.accessToken) {
+          Alert.alert(
+            "Error",
+            "Facebook sign-in failed. Missing access token.",
+          );
+          return;
+        }
+        credential = FacebookAuthProvider.credential(
+          accessTokenResult.accessToken,
+        );
       }
-      // Get the access token
-      const data = await AccessToken.getCurrentAccessToken();
-      if (!data?.accessToken) {
-        Alert.alert("Error", "Facebook sign-in failed. Missing access token.");
-        setIsFacebookOAuthSubmitting(false);
-        return;
-      }
-      const credential = FacebookAuthProvider.credential(data.accessToken);
       const userCredential = await signInWithCredential(auth, credential);
       await ensureUserDoc(userCredential.user);
       router.replace("/(tabs)");
     } catch (error: any) {
       Alert.alert("Error", error?.message || "Facebook sign-in failed");
-      router.replace("/(auth)/sign-up");
     } finally {
       setIsFacebookOAuthSubmitting(false);
     }
@@ -161,7 +217,7 @@ const SignIn = () => {
       const provider = new OAuthProvider("apple.com");
       const authCredential = provider.credential({
         idToken: credential.identityToken,
-        rawNonce: credential.user, // If you use nonce, otherwise omit
+        //rawNonce: credential.user, // If you use nonce, otherwise omit
       });
 
       const userCredential = await signInWithCredential(auth, authCredential);
@@ -169,7 +225,7 @@ const SignIn = () => {
       router.replace("/(tabs)");
     } catch (error: any) {
       Alert.alert("Error", error?.message || "Apple sign-in failed");
-      router.replace("/(auth)/sign-up");
+      //router.replace("/(auth)/sign-up");
     } finally {
       setIsAppleOAuthSubmitting(false);
     }
@@ -215,7 +271,7 @@ const SignIn = () => {
   };
 
   return (
-    <View className="gap-10 bg-white rounded-lg p-5 mt-5">
+    <View className="gap-4 bg-white rounded-lg p-5 mt-5">
       <CustomInput
         placeholder="Enter your email"
         value={form.email}
@@ -237,6 +293,13 @@ const SignIn = () => {
         isLoading={isSubmitting}
         onPress={submit}
       />
+      {Platform.OS === "ios" && (
+        <CustomButton
+          title="Sign In with Apple"
+          isLoading={isAppleOAuthSubmitting}
+          onPress={handleAppleSignIn}
+        />
+      )}
       <CustomButton
         title="Sign In with Google"
         isLoading={isGoogleOAuthSubmitting}
@@ -247,11 +310,7 @@ const SignIn = () => {
         isLoading={isFacebookOAuthSubmitting}
         onPress={handleFacebookSignIn}
       />
-      <CustomButton
-        title="Sign In with Apple"
-        isLoading={isAppleOAuthSubmitting}
-        onPress={handleAppleSignIn}
-      />
+
       <View className="flex justify-center mt-5 flex-row gap-2">
         <Text>Don't have an account?</Text>
         <Link href="/(auth)/sign-up" className="base-bold text-primary">

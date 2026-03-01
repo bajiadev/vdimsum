@@ -22,6 +22,7 @@ interface ShopDetails {
     city?: string;
     postalCode?: string;
     country?: string;
+    formatted?: string;
   };
   phone: string;
   email: string;

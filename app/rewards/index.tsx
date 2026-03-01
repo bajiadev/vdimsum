@@ -4,7 +4,7 @@ import { useOrderStore } from "@/store/order.store";
 import useShopStore from "@/store/shop.store";
 import { RedeemableItem } from "@/type";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, usePathname } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
@@ -88,6 +88,7 @@ export default function RewardsPage() {
   const [points, setPoints] = useState(0);
   const [loading, setLoading] = useState(true);
   const [redeeming, setRedeeming] = useState(false);
+  const pathname = usePathname();
 
   const fetchData = useCallback(async () => {
     if (!user?.id) return;
@@ -165,17 +166,26 @@ export default function RewardsPage() {
     );
   };
 
-  if (!user) {
-    return (
-      <SafeAreaView className="flex-1 bg-gray-50">
-        <View className="flex-1 items-center justify-center px-6">
-          <Text className="text-lg text-gray-600">
-            Please sign in to view rewards
-          </Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  useEffect(() => {
+    if (!user && pathname === "/rewards") {
+      setTimeout(() => {
+        router.replace("/(tabs)/profile");
+      }, 0);
+    }
+  }, [user, pathname]);
+
+  if (!user) return null;
+  // if (!user) {
+  //   return (
+  //     <SafeAreaView className="flex-1 bg-gray-50">
+  //       <View className="flex-1 items-center justify-center px-6">
+  //         <Text className="text-lg text-gray-600">
+  //           Please sign in to view rewards
+  //         </Text>
+  //       </View>
+  //     </SafeAreaView>
+  //   );
+  // }
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">

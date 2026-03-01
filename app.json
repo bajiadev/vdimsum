@@ -7,19 +7,22 @@
     "icon": "./assets/images/icon.png",
     "scheme": "vdimsum",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
+
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "usesAppleSignIn": true,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "This app needs your location to show nearby restaurants and calculate distances.",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "This app may require camera access for certain features or due to dependencies."
       },
       "config": {
-        "googleMapsApiKey": "AIzaSyAbqacuQdaQeYgPrx0kWlFJviIpF0tGYrI"
+        "googleMapsApiKey": "AIzaSyBlk3807kOdm69zFrmj2oSbZtKs6pAhlUM"
       },
-      "bundleIdentifier": "com.anonymous.vdimsum"
+      "bundleIdentifier": "com.bajiadapo.vdimsum",
+      "googleServicesFile": "./GoogleService-Info.plist"
     },
+
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
@@ -34,7 +37,7 @@
           "apiKey": "AIzaSyBlk3807kOdm69zFrmj2oSbZtKs6pAhlUM"
         }
       },
-      "edgeToEdgeEnabled": true,
+
       "predictiveBackGestureEnabled": false,
       "package": "com.anonymous.vdimsum"
     },
@@ -58,7 +61,7 @@
       [
         "@stripe/stripe-react-native",
         {
-          "merchantIdentifier": "your_merchant_identifier",
+          "merchantIdentifier": ["merchant.com.bajiadapo.vdimsum"],
           "enableGooglePay": true
         }
       ],

@@ -6,15 +6,16 @@ export default function ShopsLayout() {
       <Stack.Screen
         name="index"
         options={{
-          title: "Back to Home",
+          title: "",
           headerShown: true,
           headerTitleStyle: { fontSize: 14 },
+          headerBackVisible: true,
         }}
       />
       <Stack.Screen
         name="[id]"
         options={{
-          title: "Back to Shops",
+          title: "",
           headerShown: true,
           headerTitleStyle: { fontSize: 14 },
         }}
