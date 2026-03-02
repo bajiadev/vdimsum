@@ -1,3 +1,4 @@
+import CustomHeader from "@/components/CustomHeader";
 import { db } from "@/lib/firebase";
 import useShopStore from "@/store/shop.store";
 import cn from "clsx";
@@ -222,6 +223,10 @@ export default function ShopsPage() {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
+      <View className="px-6 pt-6">
+        <CustomHeader />
+      </View>
+
       <View className="px-5 py-4 h-72">
         <Text className="text-sm text-gray-600 mb-4">
           Choose a shop and select your order type

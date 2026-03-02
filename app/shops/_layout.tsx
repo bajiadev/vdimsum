@@ -6,10 +6,7 @@ export default function ShopsLayout() {
       <Stack.Screen
         name="index"
         options={{
-          title: "",
-          headerShown: true,
-          headerTitleStyle: { fontSize: 14 },
-          headerBackVisible: true,
+          headerShown: false,
         }}
       />
       <Stack.Screen

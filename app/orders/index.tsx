@@ -1,10 +1,11 @@
+import CustomHeader from "@/components/CustomHeader";
 import OrderCard from "@/components/OrderCard";
 import { getUserOrders } from "@/lib/firebase";
 import useAuthStore from "@/store/auth.store";
 import { useOrdersStore } from "@/store/orders.store";
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { FlatList, Text } from "react-native";
+import { FlatList, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Orders() {
@@ -31,6 +32,9 @@ export default function Orders() {
 
   return (
     <SafeAreaView className="flex-1">
+      <View className="px-6 pt-6">
+        <CustomHeader />
+      </View>
       <FlatList
         data={orders}
         keyExtractor={(item) => item.id}

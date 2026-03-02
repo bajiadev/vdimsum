@@ -1,8 +1,8 @@
 import { router } from "expo-router";
 import { Image, Text, TouchableOpacity, View } from "react-native";
 
-import { CustomHeaderProps } from "@/type";
 import { images } from "@/constants";
+import { CustomHeaderProps } from "@/type";
 
 const CustomHeader = ({ title }: CustomHeaderProps) => {
   return (
@@ -16,8 +16,6 @@ const CustomHeader = ({ title }: CustomHeaderProps) => {
       </TouchableOpacity>
 
       {title && <Text className="base-semibold text-dark-100">{title}</Text>}
-
-      <Image source={images.search} className="size-5" resizeMode="contain" />
     </View>
   );
 };

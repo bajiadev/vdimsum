@@ -1,12 +1,8 @@
-export const config = {
-  title: "",
-  headerBackVisible: true,
-  headerTitle: "",
-};
 import CustomButton from "@/components/CustomButton";
 import CustomInput from "@/components/CustomInput";
 import { auth, db } from "@/lib/firebase";
 import useAuthStore from "@/store/auth.store";
+import { AntDesign, FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import * as AppleAuthentication from "expo-apple-authentication";
 import * as Crypto from "expo-crypto";
@@ -292,23 +288,55 @@ const SignIn = () => {
         title="Sign In with Email"
         isLoading={isSubmitting}
         onPress={submit}
+        leftIcon={
+          <MaterialIcons
+            name="email"
+            size={24}
+            color="white"
+            style={{ marginRight: 8 }}
+          />
+        }
       />
       {Platform.OS === "ios" && (
         <CustomButton
           title="Sign In with Apple"
           isLoading={isAppleOAuthSubmitting}
           onPress={handleAppleSignIn}
+          leftIcon={
+            <AntDesign
+              name="apple"
+              size={24}
+              color="white"
+              style={{ marginRight: 8 }}
+            />
+          }
         />
       )}
       <CustomButton
         title="Sign In with Google"
         isLoading={isGoogleOAuthSubmitting}
         onPress={handleGoogleSignIn}
+        leftIcon={
+          <AntDesign
+            name="google"
+            size={24}
+            color="white"
+            style={{ marginRight: 8 }}
+          />
+        }
       />
       <CustomButton
         title="Sign In with Facebook"
         isLoading={isFacebookOAuthSubmitting}
         onPress={handleFacebookSignIn}
+        leftIcon={
+          <FontAwesome
+            name="facebook"
+            size={24}
+            color="white"
+            style={{ marginRight: 8 }}
+          />
+        }
       />
 
       <View className="flex justify-center mt-5 flex-row gap-2">

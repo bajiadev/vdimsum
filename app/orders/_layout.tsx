@@ -6,7 +6,7 @@ export default function RewardsLayout() {
       <Stack.Screen
         name="index"
         options={{
-          title: "",
+          headerShown: false,
         }}
       />
       <Stack.Screen
