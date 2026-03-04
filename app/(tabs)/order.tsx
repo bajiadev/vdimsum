@@ -163,7 +163,7 @@ const Order = () => {
         contentContainerClassName="pb-28 px-5 pt-5"
         ListHeaderComponent={() => (
           <View>
-            <CustomHeader title="Order" />
+            <CustomHeader />
             <TouchableOpacity
               onPress={() => router.push("/shops")}
               activeOpacity={0.8}

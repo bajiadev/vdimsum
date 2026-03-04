@@ -5,7 +5,6 @@ import { SplashScreen, Stack } from "expo-router";
 import { useEffect } from "react";
 import { Settings } from "react-native-fbsdk-next";
 import "./global.css";
-// Initialize Facebook SDK
 Settings.initializeSDK();
 
 SplashScreen.preventAutoHideAsync();
@@ -44,7 +43,6 @@ export default function RootLayout() {
     <StripeProvider publishableKey={publishableKey}>
       <Stack key={isAuthenticated ? "auth-yes" : "auth-no"}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        {/* <Stack.Screen name="order" options={{ headerShown: false }} /> */}
         <Stack.Screen name="(auth)" options={{ title: "" }} />
         <Stack.Screen name="orders" options={{ headerShown: false }} />
         <Stack.Screen name="settings/index" options={{ title: "Settings" }} />

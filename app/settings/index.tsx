@@ -1,10 +1,24 @@
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import { View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-import { TouchableOpacity, Text } from "react-native";
 
-const Row = ({ icon, label, onPress }) => (
+import { Text, TouchableOpacity } from "react-native";
+
+type IoniconName =
+  | "person-outline"
+  | "notifications-outline"
+  | "lock-closed-outline";
+
+const Row = ({
+  icon,
+  label,
+  onPress,
+}: {
+  icon: IoniconName;
+  label: string;
+  onPress: () => void;
+}) => (
   <TouchableOpacity
     onPress={onPress}
     className="flex-row items-center justify-between px-4 py-4 border-b border-gray-200"

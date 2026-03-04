@@ -13,8 +13,6 @@ type FeaturedItemCardProps = {
   onPress?: () => void;
 };
 
-
-
 export const FeaturedItemCard = ({ item, onPress }: FeaturedItemCardProps) => {
   return (
     <TouchableOpacity

@@ -1,10 +1,10 @@
 import { updateUserPrivacySettings } from "@/lib/firebase";
 import useAuthStore from "@/store/auth.store";
-import { useState } from "react";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Alert, Linking, Switch, Text, View } from "react-native";
 import * as Location from "expo-location";
 import { Stack } from "expo-router";
+import { useState } from "react";
+import { Alert, Linking, Switch, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const PrivacyRow = ({
   label,
@@ -150,36 +150,36 @@ export default function PrivacyScreen() {
         }}
       />
       <SafeAreaView className="flex-1 bg-white">
-      <View className="w-[92%] self-center mt-4 rounded-2xl border border-gray-200 bg-white px-4 py-1">
-        <PrivacyRow
-          label="Share analytics data"
-          description="Allow anonymous usage data to improve the app experience."
-          value={shareUsageData}
-          onChange={handleShareUsageDataToggle}
-        />
-        <PrivacyRow
-          label="Save order history"
-          description="Keep your previous orders visible in your account."
-          value={saveOrderHistory}
-          onChange={handleSaveOrderHistoryToggle}
-        />
-        <PrivacyRow
-          label="Use my location"
-          description={`Allow location access for nearby services. Status: ${locationPermissionStatus}`}
-          value={useLocation}
-          onChange={handleUseLocationToggle}
-        />
-      </View>
+        <View className="w-[92%] self-center mt-4 rounded-2xl border border-gray-200 bg-white px-4 py-1">
+          <PrivacyRow
+            label="Share analytics data"
+            description="Allow anonymous usage data to improve the app experience."
+            value={shareUsageData}
+            onChange={handleShareUsageDataToggle}
+          />
+          <PrivacyRow
+            label="Save order history"
+            description="Keep your previous orders visible in your account."
+            value={saveOrderHistory}
+            onChange={handleSaveOrderHistoryToggle}
+          />
+          <PrivacyRow
+            label="Use my location"
+            description={`Allow location access for nearby services. Status: ${locationPermissionStatus}`}
+            value={useLocation}
+            onChange={handleUseLocationToggle}
+          />
+        </View>
 
-      <View className="w-[92%] self-center mt-4 rounded-2xl border border-gray-200 bg-white px-4 py-4">
-        <Text className="text-base font-semibold text-gray-900">
-          Privacy policy
-        </Text>
-        <Text className="text-sm text-gray-500 mt-2">
-          Your account information is only used to provide ordering, rewards and
-          account services.
-        </Text>
-      </View>
+        <View className="w-[92%] self-center mt-4 rounded-2xl border border-gray-200 bg-white px-4 py-4">
+          <Text className="text-base font-semibold text-gray-900">
+            Privacy policy
+          </Text>
+          <Text className="text-sm text-gray-500 mt-2">
+            Your account information is only used to provide ordering, rewards
+            and account services.
+          </Text>
+        </View>
       </SafeAreaView>
     </>
   );

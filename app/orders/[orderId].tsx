@@ -1,4 +1,5 @@
 import CustomButton from "@/components/CustomButton";
+import CustomHeader from "@/components/CustomHeader";
 import { getOrderDetails } from "@/lib/firebase";
 import { formatCurrency } from "@/lib/formatter";
 import { useOrderStore } from "@/store/order.store";
@@ -38,6 +39,9 @@ export default function OrderDetail() {
   if (!order) {
     return (
       <SafeAreaView className="flex-1 bg-white">
+         <View className="px-6 pt-6">
+        <CustomHeader />
+      </View>
         <View className="flex-1 justify-center items-center">
           <Text className="text-gray-400">Order not found</Text>
         </View>
@@ -48,6 +52,9 @@ export default function OrderDetail() {
   if (loading) {
     return (
       <SafeAreaView className="flex-1 bg-white">
+        <View className="px-6 pt-6">
+          <CustomHeader />
+        </View>
         <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" />
         </View>
@@ -116,6 +123,9 @@ export default function OrderDetail() {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
+      <View className="px-6 pt-6">
+        <CustomHeader />
+      </View>
       <FlatList
         data={orderItems || []}
         keyExtractor={(item, index) => `${item.id}-${index}`}

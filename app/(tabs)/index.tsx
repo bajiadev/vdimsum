@@ -82,7 +82,6 @@ export default function Index() {
     <SafeAreaView className="flex-1 bg-white">
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
         <Header onOrderPress={() => router.push("/shops")} />
-
         <View className="mt-2 mb-2">
           {offers.length === 0 ? (
             <Pressable onPress={() => router.push("../offers")}>

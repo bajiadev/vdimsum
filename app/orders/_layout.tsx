@@ -12,7 +12,7 @@ export default function RewardsLayout() {
       <Stack.Screen
         name="[orderId]"
         options={{
-          title: "",
+          headerShown: false,
         }}
       />
     </Stack>
