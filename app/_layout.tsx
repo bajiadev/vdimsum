@@ -5,6 +5,7 @@ import { SplashScreen, Stack } from "expo-router";
 import { useEffect } from "react";
 import { Settings } from "react-native-fbsdk-next";
 import "./global.css";
+
 Settings.initializeSDK();
 
 SplashScreen.preventAutoHideAsync();

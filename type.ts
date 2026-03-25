@@ -49,16 +49,14 @@ export interface Category {
 /*                                   USER                                     */
 /* -------------------------------------------------------------------------- */
 
+
 export interface User {
   id: string;
   name: string;
   email: string;
   avatar: string;
   phone?: string;
-  address?: string;
-  addressLine1?: string;
-  city?: string;
-  postcode?: string;
+  addresses?: Address[];
   country?: string;
   privacySettings?: {
     shareUsageData?: boolean;
@@ -254,4 +252,14 @@ export type OrderItem = {
 // Combined type for UI (order with items loaded)
 export type OrderWithItems = Order & {
   items: OrderItem[];
+};
+
+export type Address = {
+  name?: string; // e.g., Home, Office
+  houseNumber?: string;
+  street1?: string;
+  street2?: string;
+  city?: string;
+  postcode?: string;
+  formatted: string;
 };

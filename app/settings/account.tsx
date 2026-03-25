@@ -1,10 +1,13 @@
+import { formatUKAddress } from "@/components/AddressModal";
 import CustomButton from "@/components/CustomButton";
 import CustomInput from "@/components/CustomInput";
-import { updateUserProfile } from "@/lib/firebase";
+import { db, updateUserProfile } from "@/lib/firebase";
 import useAuthStore from "@/store/auth.store";
+import { Address } from "@/type";
 import { router, Stack } from "expo-router";
-import { useMemo, useState } from "react";
-import { Alert, ScrollView, Text, View } from "react-native";
+import { doc, updateDoc } from "firebase/firestore";
+import { useState } from "react";
+import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const InfoRow = ({
@@ -26,36 +29,36 @@ export default function AccountScreen() {
   const { user, logout, setUser } = useAuthStore();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedAddressIndex, setSelectedAddressIndex] = useState(0);
   const [form, setForm] = useState({
-    name: user?.name || "",
-    phone: user?.phone || "",
-    addressLine1: user?.addressLine1 || user?.address || "",
-    city: user?.city || "",
-    postcode: user?.postcode || "",
-    country: user?.country || "",
+    name: "",
+    phone: "",
+    addressName: "",
+    street1: "",
+    street2: "",
+    city: "",
+    postcode: "",
   });
 
-  const address = useMemo(() => {
-    if (user?.addressLine1) {
-      return [user.addressLine1, user.city, user.postcode, user.country]
-        .filter(Boolean)
-        .join(", ");
-    }
-
-    return (
-      user?.address ||
-      [user?.city, user?.postcode, user?.country].filter(Boolean).join(", ")
-    );
-  }, [user]);
+  const primaryAddress = user?.addresses?.[0];
+  const addressDisplay = primaryAddress?.formatted || "Not provided";
+  const hasMultipleAddresses = (user?.addresses?.length || 0) > 1;
 
   const startEdit = () => {
+    loadAddressForm(0);
+  };
+
+  const loadAddressForm = (addressIndex: number) => {
+    const selectedAddr = user?.addresses?.[addressIndex];
+    setSelectedAddressIndex(addressIndex);
     setForm({
       name: user?.name || "",
       phone: user?.phone || "",
-      addressLine1: user?.addressLine1 || user?.address || "",
-      city: user?.city || "",
-      postcode: user?.postcode || "",
-      country: user?.country || "",
+      addressName: selectedAddr?.name || "",
+      street1: selectedAddr?.street1 || "",
+      street2: selectedAddr?.street2 || "",
+      city: selectedAddr?.city || "",
+      postcode: selectedAddr?.postcode || "",
     });
     setIsEditing(true);
   };
@@ -75,20 +78,48 @@ export default function AccountScreen() {
     try {
       setIsSaving(true);
 
-      const payload = {
+      await updateUserProfile(user.id, {
         name: form.name.trim(),
         phone: form.phone.trim(),
-        addressLine1: form.addressLine1.trim(),
-        city: form.city.trim(),
-        postcode: form.postcode.trim(),
-        country: form.country.trim(),
-      };
+      });
 
-      await updateUserProfile(user.id, payload);
+      let updatedAddresses = user.addresses ? [...user.addresses] : [];
+
+      if (form.street1.trim() || form.city.trim() || form.postcode.trim()) {
+        const addressObj: Address = {
+          name: form.addressName.trim(),
+          street1: form.street1.trim(),
+          street2: form.street2.trim(),
+          city: form.city.trim(),
+          postcode: form.postcode.trim(),
+          formatted: formatUKAddress({
+            street1: form.street1.trim(),
+            street2: form.street2.trim(),
+            city: form.city.trim(),
+            postcode: form.postcode.trim(),
+          }),
+        };
+
+        const userRef = doc(db, "users", user.id);
+
+        // Update existing address at selectedAddressIndex or add new
+        if (selectedAddressIndex < updatedAddresses.length) {
+          updatedAddresses[selectedAddressIndex] = addressObj;
+        } else {
+          updatedAddresses.push(addressObj);
+        }
+
+        // Write updated array back to Firestore
+        await updateDoc(userRef, {
+          addresses: updatedAddresses,
+        });
+      }
+
       setUser({
         ...user,
-        ...payload,
-        address: payload.addressLine1,
+        name: form.name.trim(),
+        phone: form.phone.trim(),
+        addresses: updatedAddresses,
       });
 
       setIsEditing(false);
@@ -118,6 +149,44 @@ export default function AccountScreen() {
         <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
           {isEditing ? (
             <View className="w-[92%] self-center mt-4 rounded-2xl border border-gray-200 bg-white px-4 py-4 gap-3">
+              {hasMultipleAddresses && (
+                <View className="mb-4 pb-4 border-b border-gray-200">
+                  <Text className="text-sm font-semibold text-gray-700 mb-3">
+                    Select Address to Edit
+                  </Text>
+                  {user?.addresses?.map((addr, idx) => (
+                    <Pressable
+                      key={idx}
+                      onPress={() => loadAddressForm(idx)}
+                      className="flex-row items-center p-3 mb-2 border border-gray-200 rounded-lg"
+                      style={{
+                        backgroundColor:
+                          selectedAddressIndex === idx ? "#FFF3E6" : "#fff",
+                      }}
+                    >
+                      <View
+                        className="w-5 h-5 rounded-full border-2 mr-3"
+                        style={{
+                          borderColor:
+                            selectedAddressIndex === idx ? "#FF6B00" : "#ccc",
+                          backgroundColor:
+                            selectedAddressIndex === idx
+                              ? "#FF6B00"
+                              : "transparent",
+                        }}
+                      />
+                      <View className="flex-1">
+                        <Text className="font-semibold text-gray-900">
+                          {addr.name || `Address ${idx + 1}`}
+                        </Text>
+                        <Text className="text-xs text-gray-600 mt-1">
+                          {addr.formatted}
+                        </Text>
+                      </View>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
               <CustomInput
                 label="Full name"
                 value={form.name}
@@ -141,12 +210,28 @@ export default function AccountScreen() {
                 placeholder="Enter phone number"
               />
               <CustomInput
-                label="Address"
-                value={form.addressLine1}
+                label="Address Label (e.g. Home)"
+                value={form.addressName}
                 onChangeText={(text) =>
-                  setForm((prev) => ({ ...prev, addressLine1: text }))
+                  setForm((prev) => ({ ...prev, addressName: text }))
                 }
-                placeholder="Address line"
+                placeholder="Home, Office..."
+              />
+              <CustomInput
+                label="Street"
+                value={form.street1}
+                onChangeText={(text) =>
+                  setForm((prev) => ({ ...prev, street1: text }))
+                }
+                placeholder="Street address"
+              />
+              <CustomInput
+                label="Street 2 (optional)"
+                value={form.street2}
+                onChangeText={(text) =>
+                  setForm((prev) => ({ ...prev, street2: text }))
+                }
+                placeholder="Apt, suite, flat..."
               />
               <CustomInput
                 label="City"
@@ -163,14 +248,6 @@ export default function AccountScreen() {
                   setForm((prev) => ({ ...prev, postcode: text }))
                 }
                 placeholder="Postcode"
-              />
-              <CustomInput
-                label="Country"
-                value={form.country}
-                onChangeText={(text) =>
-                  setForm((prev) => ({ ...prev, country: text }))
-                }
-                placeholder="Country"
               />
               <CustomButton
                 title="Save"
@@ -190,7 +267,7 @@ export default function AccountScreen() {
                 <InfoRow label="Full Name" value={user?.name} />
                 <InfoRow label="Email" value={user?.email} />
                 <InfoRow label="Phone" value={user?.phone} />
-                <InfoRow label="Address" value={address} />
+                <InfoRow label="Address" value={addressDisplay} />
               </View>
 
               <View className="w-[92%] self-center mt-4 gap-3">

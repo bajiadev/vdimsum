@@ -1,5 +1,6 @@
 import Header from "@/components/Header";
 import ProductOrderFooter from "@/components/ProductOrderFooter";
+import SignInRequiredAlert from "@/components/SignInRequiredAlert";
 import { formatCurrency } from "@/lib/formatter";
 import useAuthStore from "@/store/auth.store";
 import { useMenu } from "@/store/menu.store";
@@ -23,6 +24,7 @@ export default function ProductDetails() {
   const [selectedCustomizations, setSelectedCustomizations] = useState<
     Record<string, string[]>
   >({});
+  const [showSignInPrompt, setShowSignInPrompt] = useState(false);
   const { id } = useLocalSearchParams<{ id: string }>();
   const { fetchMenuItemById } = useMenu();
   const { user } = useAuthStore();
@@ -112,21 +114,7 @@ export default function ProductDetails() {
     }
 
     if (!user) {
-      Alert.alert(
-        "Sign In Required",
-        "Please sign in to add items to your order",
-        [
-          { text: "Cancel", onPress: () => {} },
-          {
-            text: "Sign In",
-            onPress: () => router.push("/(auth)/sign-in"),
-          },
-          {
-            text: "Sign Up",
-            onPress: () => router.push("/(auth)/sign-up"),
-          },
-        ],
-      );
+      setShowSignInPrompt(true);
       return;
     }
 
@@ -151,6 +139,10 @@ export default function ProductDetails() {
 
   return (
     <View className="flex-1">
+      <SignInRequiredAlert
+        visible={showSignInPrompt}
+        setVisible={setShowSignInPrompt}
+      />
       <View className="px-5 pt-4">
         <Header onOrderPress={() => router.push("/shops")} />
       </View>

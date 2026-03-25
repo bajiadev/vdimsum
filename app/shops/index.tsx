@@ -1,10 +1,19 @@
+import AddressModal, { formatUKAddress } from "@/components/AddressModal";
 import CustomHeader from "@/components/CustomHeader";
 import { db } from "@/lib/firebase";
+import useAuthStore from "@/store/auth.store";
 import useShopStore from "@/store/shop.store";
+import { Address } from "@/type";
 import cn from "clsx";
 import * as Location from "expo-location";
 import { router } from "expo-router";
-import { collection, getDocs } from "firebase/firestore";
+import {
+  arrayUnion,
+  collection,
+  doc,
+  getDocs,
+  updateDoc,
+} from "firebase/firestore";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -16,15 +25,6 @@ import {
 } from "react-native";
 import MapView, { Marker, PROVIDER_GOOGLE, Region } from "react-native-maps";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-type Address = {
-  houseNumber?: string;
-  street1?: string;
-  street2?: string;
-  city?: string;
-  postcode?: string;
-  formatted: string;
-};
 
 interface Shop {
   id: string;
@@ -59,6 +59,10 @@ const getLatLng = (location: any) => {
 };
 
 export default function ShopsPage() {
+  const { user, setUser } = useAuthStore();
+  // Modal state for address selection
+  const [showAddressModal, setShowAddressModal] = useState(false);
+  const [savingAddress, setSavingAddress] = useState(false);
   const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
   const { shopId: selectedShopId, orderType: selectedOrderType } =
@@ -184,31 +188,68 @@ export default function ShopsPage() {
     fetchShops();
   }, [userLocation]);
 
-  function formatUKAddress(a: any) {
-    return [
-      [a.houseNumber, a.street1].filter(Boolean).join(" "),
-      a.street2,
-      a.city,
-      a.postcode,
-    ]
-      .filter(Boolean)
-      .join(", ");
-  }
+  // Save address to user profile in Firestore
+  const saveAddressToProfile = async (addressObj: Address) => {
+    if (!user?.id) return;
+    setSavingAddress(true);
+    try {
+      // Save to Firestore: append to addresses array
+      const userRef = doc(db, "users", user.id);
+      await updateDoc(userRef, {
+        addresses: arrayUnion(addressObj),
+      });
+      // Update local user state
+      setUser({
+        ...user,
+        addresses: user.addresses
+          ? [...user.addresses, addressObj]
+          : [addressObj],
+      });
+    } catch (e) {
+      Alert.alert("Error", "Failed to save address");
+    } finally {
+      setSavingAddress(false);
+    }
+  };
 
-  const handleOrderSelection = (
+  // Show modal for delivery address selection
+  const handleDeliverySelection = (shopId: string, shopName: string) => {
+    setShowAddressModal(true);
+    useShopStore.setState({
+      shopId,
+      shopName,
+      shopAddress: null,
+      orderType: "delivery",
+    });
+  };
+
+  // Confirm address selection (from modal)
+  const confirmAddressSelection = (addressObj: Address) => {
+    if (!addressObj || !addressObj.formatted) {
+      Alert.alert("Please enter or select an address");
+      return;
+    }
+    useShopStore.setState((state: any) => ({
+      ...state,
+      shopAddress: addressObj.formatted,
+      deliveryAddress: addressObj,
+    }));
+    setShowAddressModal(false);
+    router.back();
+  };
+
+  // Pickup selection (no address needed)
+  const handlePickupSelection = (
     shopId: string,
     shopName: string,
     shopAddress: string,
-    type: "pickup" | "delivery",
   ) => {
-    // Save selected shop and order type to store
     useShopStore.setState({
       shopId,
       shopName,
       shopAddress,
-      orderType: type,
+      orderType: "pickup",
     });
-    // Navigate back
     router.back();
   };
 
@@ -307,14 +348,7 @@ export default function ShopsPage() {
               {/* Delivery and Pickup Buttons */}
               <View className="gap-2 mt-3 flex-row justify-center gap-x-4">
                 <TouchableOpacity
-                  onPress={() =>
-                    handleOrderSelection(
-                      item.id,
-                      item.name,
-                      item.address?.formatted || "",
-                      "delivery",
-                    )
-                  }
+                  onPress={() => handleDeliverySelection(item.id, item.name)}
                   className={cn(
                     "py-3 px-4 rounded-lg border-2 border-gray-500",
                     selectedShopId === item.id &&
@@ -328,11 +362,10 @@ export default function ShopsPage() {
 
                 <TouchableOpacity
                   onPress={() =>
-                    handleOrderSelection(
+                    handlePickupSelection(
                       item.id,
                       item.name,
                       item.address?.formatted || "",
-                      "pickup",
                     )
                   }
                   className={cn(
@@ -348,6 +381,14 @@ export default function ShopsPage() {
             </View>
           </TouchableOpacity>
         )}
+      />
+      <AddressModal
+        visible={showAddressModal}
+        onClose={() => setShowAddressModal(false)}
+        onConfirm={confirmAddressSelection}
+        onSave={saveAddressToProfile}
+        saving={savingAddress}
+        addresses={user?.addresses || []}
       />
     </SafeAreaView>
   );

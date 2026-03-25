@@ -1,9 +1,11 @@
+import { Address } from "@/type";
 import { create } from "zustand";
 
 interface ShopSelection {
   shopId: string | null;
   shopName: string | null;
   shopAddress: string | null;
+  deliveryAddress: Address | null;
   orderType: "delivery" | "pickup" | null;
 }
 
@@ -16,6 +18,7 @@ const useShopStore = create<ShopStore>((set) => ({
   shopId: null,
   shopName: null,
   shopAddress: null,
+  deliveryAddress: null,
   orderType: null,
   setShopSelection: (data) => set(data),
   clearShopSelection: () =>
@@ -23,6 +26,7 @@ const useShopStore = create<ShopStore>((set) => ({
       shopId: null,
       shopName: null,
       shopAddress: null,
+      deliveryAddress: null,
       orderType: null,
     }),
 }));

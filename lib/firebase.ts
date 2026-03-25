@@ -4,7 +4,6 @@ import {
   Order,
   OrderItem,
   OrderItemType,
-  PointTransaction,
   RedeemableItem,
   SignInParams,
 } from "@/type";
@@ -54,10 +53,9 @@ export const cloudFunctions = getFunctions(app);
 //   connectFunctionsEmulator(cloudFunctions, "localhost", 5001);
 // }
 
+import useShopStore from "@/store/shop.store";
 import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
 import { getReactNativePersistence, initializeAuth } from "firebase/auth";
-import { useOrdersStore } from "@/store/orders.store";
-import useShopStore from "@/store/shop.store";
 export const auth = initializeAuth(app, {
   persistence: getReactNativePersistence(ReactNativeAsyncStorage),
 });
@@ -267,13 +265,13 @@ export const getFeaturedMenuItems = async () => {
 /*                              ORDER                                         */
 /* -------------------------------------------------------------------------- */
 
-
 export const createOrder = async (
   userId: string,
   orderItems: OrderItemType[],
   totalAmount: number,
 ) => {
-  const { shopId, shopName, shopAddress, orderType } = useShopStore.getState();
+  const { shopId, shopName, shopAddress, deliveryAddress, orderType } =
+    useShopStore.getState();
   console.log(
     "createOrder shopId:",
     shopId,
@@ -297,6 +295,7 @@ export const createOrder = async (
     shopId: shopId || null,
     shopName: shopName || null,
     shopAddress: shopAddress || null,
+    deliveryAddress: orderType === "delivery" ? deliveryAddress || null : null,
     orderType: orderType || null,
     itemCount,
     amount: totalAmount,

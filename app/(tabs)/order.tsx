@@ -1,6 +1,7 @@
 import CustomButton from "@/components/CustomButton";
 import CustomHeader from "@/components/CustomHeader";
 import OrderItem from "@/components/OrderItem";
+import SignInRequiredAlert from "@/components/SignInRequiredAlert";
 import { cloudFunctions, markOrderAsPaid } from "@/lib/firebase";
 import { formatCurrency } from "@/lib/formatter";
 import useAuthStore from "@/store/auth.store";
@@ -20,6 +21,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { useState } from "react";
 
 const PaymentInfoStripe = ({
   label,
@@ -40,9 +42,10 @@ const PaymentInfoStripe = ({
 const Order = () => {
   const { user } = useAuthStore();
   const { items, getTotalItems, getTotalPrice } = useOrderStore();
-  const { shopName, shopAddress, orderType } = useShopStore();
+  const { shopName, shopAddress, deliveryAddress, orderType } = useShopStore();
   const stripe = useStripe();
   const functions = cloudFunctions;
+  const [showSignInPrompt, setShowSignInPrompt] = useState(false);
 
   const totalItems = getTotalItems();
   const totalPrice = getTotalPrice();
@@ -51,21 +54,20 @@ const Order = () => {
   const discount = 0;
   const finalTotal = totalPrice + deliveryFee - discount;
 
-  const orderInfoTitle = !orderType
-    ? "Choose shop and delivery/pickup"
-    : orderType === "delivery"
-      ? `Delivery from ${shopName || ""}`
+  const headerText = !orderType
+    ? "Order info"
+    : orderType == "delivery"
+      ? `Deliver from ${shopName || ""}`
       : `Pickup from ${shopName || ""}`;
+
+  const subtext =
+    orderType === "delivery"
+      ? `To: ${deliveryAddress?.formatted || "Tap to select delivery address"}`
+      : `From: ${shopAddress || "Tap to select pickup location"}`;
 
   const handleOrderNow = async () => {
     if (!user) {
-      Alert.alert("Sign In Required", "Please sign in to place your order.", [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Sign In",
-          onPress: () => router.push("/(auth)/sign-in"),
-        },
-      ]);
+      setShowSignInPrompt(true);
       return;
     }
 
@@ -106,7 +108,7 @@ const Order = () => {
         orderItems: orderItemsPayload,
         orderId,
       });
-     
+
       const clientSecret = data.clientSecret;
       if (!clientSecret)
         throw new Error("PaymentIntent client secret not returned");
@@ -147,6 +149,12 @@ const Order = () => {
 
   return (
     <SafeAreaView className="bg-white h-full">
+      <SignInRequiredAlert
+        visible={showSignInPrompt}
+        setVisible={setShowSignInPrompt}
+        message="Please sign in to place your order."
+        showSignUp={false}
+      />
       <FlatList
         data={items}
         renderItem={({ item }) => <OrderItem item={item} />}
@@ -172,12 +180,16 @@ const Order = () => {
               <Text className="font-bold uppercase text-gray-900 text-center">
                 Order info
               </Text>
-              <Text className="mt-1 text-base font-semibold text-dark-100 text-center">
-                {orderInfoTitle}
-              </Text>
-              {shopAddress ? (
-                <Text className="mt-1 text-sm text-gray-600 text-center">
-                  {shopAddress}
+
+              <View className="flex-col gap-y-1 items-center justify-center">
+                <Text className="semi-bold">{headerText}</Text>
+                {subtext && (
+                  <Text className="text-xs text-gray-600">{subtext}</Text>
+                )}
+              </View>
+              {orderType === "delivery" && !deliveryAddress ? (
+                <Text className="mt-1 text-sm text-orange-500 text-center">
+                  Tap to select a delivery address
                 </Text>
               ) : null}
             </TouchableOpacity>

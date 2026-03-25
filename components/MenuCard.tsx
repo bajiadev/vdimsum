@@ -1,9 +1,11 @@
+import SignInRequiredAlert from "@/components/SignInRequiredAlert";
 import { formatCurrency } from "@/lib/formatter";
 import useAuthStore from "@/store/auth.store";
 import { useOrderStore } from "@/store/order.store";
 import useShopStore from "@/store/shop.store";
 import { MenuItem } from "@/type";
 import { Link, router } from "expo-router";
+import { useState } from "react";
 import {
   Alert,
   Image,
@@ -18,25 +20,11 @@ const MenuCard = ({ item }: { item: MenuItem }) => {
   const { addItem } = useOrderStore();
   const { user } = useAuthStore();
   const { shopId, orderType } = useShopStore();
+  const [showSignInPrompt, setShowSignInPrompt] = useState(false);
 
   const handleAddToOrder = () => {
     if (!user) {
-      // Show auth modal/redirect to sign up
-      Alert.alert(
-        "Sign In Required",
-        "Please sign in to add items to your order",
-        [
-          { text: "Cancel", onPress: () => {} },
-          {
-            text: "Sign In",
-            onPress: () => router.push("/(auth)/sign-in"),
-          },
-          {
-            text: "Sign Up",
-            onPress: () => router.push("/(auth)/sign-up"),
-          },
-        ],
-      );
+      setShowSignInPrompt(true);
       return;
     }
 
@@ -63,43 +51,54 @@ const MenuCard = ({ item }: { item: MenuItem }) => {
   };
 
   return (
-    <Link href={{ pathname: "/product/[id]", params: { id: item.id } }} asChild>
-      <TouchableOpacity
-        className="flex-row items-center gap-4 rounded-2xl bg-white p-4"
-        style={
-          Platform.OS === "android"
-            ? { elevation: 8, shadowColor: "#878787" }
-            : {}
-        }
+    <>
+      <SignInRequiredAlert
+        visible={showSignInPrompt}
+        setVisible={setShowSignInPrompt}
+      />
+      <Link
+        href={{ pathname: "/product/[id]", params: { id: item.id } }}
+        asChild
       >
-        {imageUrl ? (
-          <Image
-            source={{ uri: imageUrl }}
-            className="h-20 w-20 rounded-xl"
-            resizeMode="cover"
-          />
-        ) : (
-          <View className="h-20 w-20 items-center justify-center rounded-xl bg-gray-100">
-            <Text className="text-xs text-gray-400">No image</Text>
-          </View>
-        )}
+        <TouchableOpacity
+          className="flex-row items-center gap-4 rounded-2xl bg-white p-4"
+          style={
+            Platform.OS === "android"
+              ? { elevation: 8, shadowColor: "#878787" }
+              : {}
+          }
+        >
+          {imageUrl ? (
+            <Image
+              source={{ uri: imageUrl }}
+              className="h-20 w-20 rounded-xl"
+              resizeMode="cover"
+            />
+          ) : (
+            <View className="h-20 w-20 items-center justify-center rounded-xl bg-gray-100">
+              <Text className="text-xs text-gray-400">No image</Text>
+            </View>
+          )}
 
-        <View className="flex-1 items-end">
-          <Text
-            className="base-bold text-dark-100 mb-1 text-right"
-            numberOfLines={1}
-          >
-            {item.name}
-          </Text>
-          <Text className="body-regular text-gray-200 mb-3 text-right">
-            {formatCurrency(item.price)}
-          </Text>
-          <TouchableOpacity onPress={handleAddToOrder}>
-            <Text className="paragraph-bold text-primary">Add to Order +</Text>
-          </TouchableOpacity>
-        </View>
-      </TouchableOpacity>
-    </Link>
+          <View className="flex-1 items-end">
+            <Text
+              className="base-bold text-dark-100 mb-1 text-right"
+              numberOfLines={1}
+            >
+              {item.name}
+            </Text>
+            <Text className="body-regular text-gray-200 mb-3 text-right">
+              {formatCurrency(item.price)}
+            </Text>
+            <TouchableOpacity onPress={handleAddToOrder}>
+              <Text className="paragraph-bold text-primary">
+                Add to Order +
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Link>
+    </>
   );
 };
 export default MenuCard;
