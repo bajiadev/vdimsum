@@ -34,6 +34,45 @@ async function calculateTotal(orderItems: { id: string; quantity: number }[]) {
   return total;
 }
 
+async function calculatePercentageThresholdDiscount(subtotal: number) {
+  const now = admin.firestore.Timestamp.now();
+  const offersSnap = await db
+    .collection("offers")
+    .where("is_active", "==", true)
+    .where("applies_to", "==", "order")
+    .where("discount_type", "==", "percentage_threshold")
+    .where("startAt", "<=", now)
+    .where("endAt", ">=", now)
+    .get();
+
+  let bestDiscountAmount = 0;
+
+  for (const offerDoc of offersSnap.docs) {
+    const offer = offerDoc.data() as any;
+    const thresholdAmount = Number(offer.threshold_amount ?? NaN);
+    const percentOff = Number(offer.percent_off ?? NaN);
+
+    if (!Number.isFinite(thresholdAmount) || !Number.isFinite(percentOff)) {
+      continue;
+    }
+
+    if (percentOff <= 0 || thresholdAmount <= 0) {
+      continue;
+    }
+
+    if (subtotal < thresholdAmount) {
+      continue;
+    }
+
+    const discountAmount = Math.floor(subtotal * (percentOff / 100));
+    if (discountAmount > bestDiscountAmount) {
+      bestDiscountAmount = discountAmount;
+    }
+  }
+
+  return bestDiscountAmount;
+}
+
 // Main function: create Stripe PaymentIntent
 export const createPaymentIntent = onCall(
   { secrets: [STRIPE_SECRET], memory: "256MiB", timeoutSeconds: 30 },
@@ -68,7 +107,13 @@ export const createPaymentIntent = onCall(
       }
 
       console.log("Received orderItems:", orderItems, "orderId:", orderId);
-      const amount = await calculateTotal(orderItems);
+      const subtotal = await calculateTotal(orderItems);
+      const orderLevelDiscount =
+        await calculatePercentageThresholdDiscount(subtotal);
+      const amount = Math.max(subtotal - orderLevelDiscount, 0);
+
+      console.log("Calculated subtotal:", subtotal);
+      console.log("Calculated order discount:", orderLevelDiscount);
       console.log("Calculated total amount:", amount);
       const paymentIntent = await stripe.paymentIntents.create({
         amount,

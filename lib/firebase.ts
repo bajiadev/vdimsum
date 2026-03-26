@@ -1,6 +1,7 @@
 import {
   CreateUserParams,
   GetMenuParams,
+  Offer,
   Order,
   OrderItem,
   OrderItemType,
@@ -184,6 +185,7 @@ export const updateUserPrivacySettings = async (
 export const getMenu = async ({
   categoryId,
   categoryName,
+  offerTag,
   query: search,
 }: GetMenuParams) => {
   try {
@@ -194,13 +196,22 @@ export const getMenu = async ({
       conditions.push(where("category_ids", "array-contains", categoryId));
     } else if (categoryName) {
       conditions.push(where("category_names", "array-contains", categoryName));
+    } else if (offerTag) {
+      conditions.push(where("offer_tags", "array-contains", offerTag));
     }
     if (search) conditions.push(where("keywords", "array-contains", search));
 
     const q = conditions.length ? query(qRef, ...conditions) : qRef;
 
     const snap = await getDocs(q);
-    return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    return snap.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        offer_tags: data.offer_tags || [],
+      };
+    });
   } catch (e: any) {
     throw new Error(e.message);
   }
@@ -228,7 +239,7 @@ export const getCategories = async () => {
 /*                                   OFFERS                                   */
 /* -------------------------------------------------------------------------- */
 
-export const getOffers = async () => {
+export const getOffers = async (): Promise<Offer[]> => {
   try {
     const now = Timestamp.now();
 
@@ -240,7 +251,33 @@ export const getOffers = async () => {
     );
 
     const snap = await getDocs(q);
-    return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    return snap.docs.map((docSnap) => {
+      const data = docSnap.data() as any;
+      return {
+        id: docSnap.id,
+        name: data.name ?? data.title ?? "Offer",
+        description: data.description ?? "",
+        applies_to: data.applies_to === "order" ? "order" : "menu",
+        discount_type:
+          data.discount_type ??
+          (data.applies_to === "menu" ? "bogo" : undefined),
+        offer_tag: data.offer_tag,
+        buy_quantity: data.buy_quantity ?? 1,
+        free_quantity: data.free_quantity ?? 1,
+        threshold_amount:
+          typeof data.threshold_amount === "number"
+            ? data.threshold_amount
+            : undefined,
+        percent_off:
+          typeof data.percent_off === "number" ? data.percent_off : undefined,
+        free_item_id: data.free_item_id,
+        max_free_qty: data.max_free_qty ?? 1,
+        image_url: data.image_url ?? data.imageUrl,
+        is_active: Boolean(data.is_active),
+        startAt: data.startAt?.toDate?.() ?? null,
+        endAt: data.endAt?.toDate?.() ?? null,
+      };
+    });
   } catch (e: any) {
     throw new Error(e.message);
   }

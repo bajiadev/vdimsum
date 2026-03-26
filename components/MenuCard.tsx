@@ -15,12 +15,20 @@ import {
   View,
 } from "react-native";
 
-const MenuCard = ({ item }: { item: MenuItem }) => {
+interface MenuCardProps {
+  item: MenuItem;
+  activeBogoTags?: string[];
+}
+
+const MenuCard = ({ item, activeBogoTags = [] }: MenuCardProps) => {
   const imageUrl = item.image_url ? `${item.image_url}` : undefined;
   const { addItem } = useOrderStore();
   const { user } = useAuthStore();
   const { shopId, orderType } = useShopStore();
   const [showSignInPrompt, setShowSignInPrompt] = useState(false);
+  const isBogoEligible = (item.offer_tags || []).some((tag) =>
+    activeBogoTags.includes(tag),
+  );
 
   const handleAddToOrder = () => {
     if (!user) {
@@ -90,6 +98,13 @@ const MenuCard = ({ item }: { item: MenuItem }) => {
             <Text className="body-regular text-gray-200 mb-3 text-right">
               {formatCurrency(item.price)}
             </Text>
+            {isBogoEligible ? (
+              <View className="mb-2 rounded-full bg-orange-100 px-3 py-1">
+                <Text className="text-xs font-semibold text-orange-700">
+                  Buy 1 get 1 free
+                </Text>
+              </View>
+            ) : null}
             <TouchableOpacity onPress={handleAddToOrder}>
               <Text className="paragraph-bold text-primary">
                 Add to Order +

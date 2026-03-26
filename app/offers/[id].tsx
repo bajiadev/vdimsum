@@ -1,14 +1,25 @@
 import { getOffers } from "@/lib/firebase";
-import { Ionicons } from "@expo/vector-icons";
+import { Offer } from "@/type";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { View, Text, Image, ScrollView, Pressable } from "react-native";
+import { Image, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const Offerdetails = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [offers, setOffers] = useState<any[]>([]);
+  const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const formatOfferDate = (date: Date | null) => {
+    if (!date) return "N/A";
+    return date.toLocaleString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
   useEffect(() => {
     const loadOffers = async () => {
@@ -52,27 +63,66 @@ const Offerdetails = () => {
             ) : null}
 
             <Text className="text-3xl font-bold text-gray-900 mt-4">
-              {offer.title}
+              {offer.name}
             </Text>
 
             <Text className="text-base text-gray-600 mt-3 leading-6">
               {offer.description}
             </Text>
 
-            {offer.type ? (
+            <View className="mt-5 self-start bg-orange-100 px-3 py-1 rounded-full">
+              <Text className="text-orange-700 font-semibold uppercase">
+                Applies to {offer.applies_to}
+              </Text>
+            </View>
+
+            {offer.discount_type === "bogo" ? (
+              <View className="mt-3 self-start bg-orange-50 px-3 py-2 rounded-2xl">
+                <Text className="text-orange-700 font-semibold">
+                  Buy {offer.buy_quantity ?? 1}, get {offer.free_quantity ?? 1}{" "}
+                  free
+                </Text>
+              </View>
+            ) : null}
+
+            <View className="mt-3">
+              <Text className="text-sm text-gray-500">
+                Starts: {formatOfferDate(offer.startAt)}
+              </Text>
+              <Text className="text-sm text-gray-500 mt-1">
+                Ends: {formatOfferDate(offer.endAt)}
+              </Text>
+            </View>
+
+            {offer.is_active ? (
               <View className="mt-5 self-start bg-orange-100 px-3 py-1 rounded-full">
                 <Text className="text-orange-700 font-semibold">
-                  {offer.type === "percentage" ? "Percentage offer" : "Offer"}
+                  Active offer
                 </Text>
               </View>
             ) : null}
 
             <Pressable
               className="mt-6 bg-orange-500 rounded-xl py-3 px-4"
-              onPress={() => router.push("/(tabs)/menu")}
+              onPress={() =>
+                router.push(
+                  offer.applies_to === "order"
+                    ? "/(tabs)/order"
+                    : {
+                        pathname: "/category/[id]",
+                        params: {
+                          id: offer.id,
+                          name: offer.name,
+                          offerTag: offer.offer_tag ?? "",
+                        },
+                      },
+                )
+              }
             >
               <Text className="text-white text-center text-base font-semibold">
-                Go to Menu
+                {offer.applies_to === "order"
+                  ? "Go to Order"
+                  : "Browse Offer Items"}
               </Text>
             </Pressable>
           </View>

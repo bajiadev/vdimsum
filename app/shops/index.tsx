@@ -39,6 +39,8 @@ interface Shop {
   distance?: number;
 }
 
+const DELIVERY_RADIUS_MILES = 4;
+
 const getLatLng = (location: any) => {
   if (!location) {
     return { latitude: 0, longitude: 0 };
@@ -320,64 +322,104 @@ export default function ShopsPage() {
         renderItem={({ item }) => (
           <TouchableOpacity onPress={() => router.push(`/shops/${item.id}`)}>
             <View className="mb-5 p-4 rounded-xl border border-gray-200 bg-white">
-              <View className="flex-row justify-between items-start mb-3">
-                <View className="flex-1">
-                  <Text className="text-lg font-bold text-dark-100">
-                    {item.name}
-                  </Text>
-                  <Text className="text-sm text-gray-600 mt-1">
-                    {item.address?.formatted || formatUKAddress(item.address)}
-                  </Text>
-                </View>
-                {item.distance !== undefined && (
-                  <Text className="text-sm font-semibold text-orange-500 ml-2">
-                    {item.distance.toFixed(1)} miles
-                  </Text>
-                )}
-              </View>
+              {(() => {
+                const isDeliveryDisabled =
+                  item.distance !== undefined &&
+                  item.distance > DELIVERY_RADIUS_MILES;
 
-              <View className="flex-row justify-between items-center mb-3 py-2 border-t border-gray-100">
-                <View className="gap-1">
-                  <Text className="text-xs text-gray-600">📞 {item.phone}</Text>
-                  <Text className="text-xs text-gray-600">📧 {item.email}</Text>
-                </View>
-              </View>
-              <Text className="text-xs text-center text-gray-500 mt-3 font-semibold">
-                Order from here
-              </Text>
-              {/* Delivery and Pickup Buttons */}
-              <View className="gap-2 mt-3 flex-row justify-center gap-x-4">
-                <TouchableOpacity
-                  onPress={() => handleDeliverySelection(item.id, item.name)}
-                  className={cn(
-                    "py-3 px-4 rounded-lg border-2 border-gray-500",
-                    selectedShopId === item.id &&
-                      selectedOrderType === "delivery"
-                      ? "bg-orange-500 border-orange-500"
-                      : "bg-white",
-                  )}
-                >
-                  <Text className="text-center font-semibold">🚚 Delivery</Text>
-                </TouchableOpacity>
+                return (
+                  <>
+                    <View className="flex-row justify-between items-start mb-3">
+                      <View className="flex-1">
+                        <Text className="text-lg font-bold text-dark-100">
+                          {item.name}
+                        </Text>
+                        <Text className="text-sm text-gray-600 mt-1">
+                          {item.address?.formatted ||
+                            formatUKAddress(item.address)}
+                        </Text>
+                      </View>
+                      {item.distance !== undefined && (
+                        <Text className="text-sm font-semibold text-orange-500 ml-2">
+                          {item.distance.toFixed(1)} miles
+                        </Text>
+                      )}
+                    </View>
 
-                <TouchableOpacity
-                  onPress={() =>
-                    handlePickupSelection(
-                      item.id,
-                      item.name,
-                      item.address?.formatted || "",
-                    )
-                  }
-                  className={cn(
-                    "py-3 px-4 rounded-lg border-2 border-gray-500",
-                    selectedShopId === item.id && selectedOrderType === "pickup"
-                      ? "bg-orange-500 border-orange-500"
-                      : "bg-white",
-                  )}
-                >
-                  <Text className="text-center font-semibold">🏪 Pickup</Text>
-                </TouchableOpacity>
-              </View>
+                    <View className="flex-row justify-between items-center mb-3 py-2 border-t border-gray-100">
+                      <View className="gap-1">
+                        <Text className="text-xs text-gray-600">
+                          📞 {item.phone}
+                        </Text>
+                        <Text className="text-xs text-gray-600">
+                          📧 {item.email}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text className="text-xs text-center text-gray-500 mt-3 font-semibold">
+                      Order from here
+                    </Text>
+                    {/* Delivery and Pickup Buttons */}
+                    <View className="gap-2 mt-3 flex-row justify-center gap-x-4">
+                      <TouchableOpacity
+                        disabled={isDeliveryDisabled}
+                        onPress={() =>
+                          handleDeliverySelection(item.id, item.name)
+                        }
+                        className={cn(
+                          "py-3 px-4 rounded-lg border-2",
+                          isDeliveryDisabled
+                            ? "border-gray-300 bg-gray-100"
+                            : "border-gray-500",
+                          !isDeliveryDisabled &&
+                            selectedShopId === item.id &&
+                            selectedOrderType === "delivery"
+                            ? "bg-orange-500 border-orange-500"
+                            : "bg-white",
+                        )}
+                      >
+                        <Text
+                          className={cn(
+                            "text-center font-semibold",
+                            isDeliveryDisabled
+                              ? "text-gray-400"
+                              : "text-dark-100",
+                          )}
+                        >
+                          🚚 Delivery
+                        </Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        onPress={() =>
+                          handlePickupSelection(
+                            item.id,
+                            item.name,
+                            item.address?.formatted || "",
+                          )
+                        }
+                        className={cn(
+                          "py-3 px-4 rounded-lg border-2 border-gray-500",
+                          selectedShopId === item.id &&
+                            selectedOrderType === "pickup"
+                            ? "bg-orange-500 border-orange-500"
+                            : "bg-white",
+                        )}
+                      >
+                        <Text className="text-center font-semibold">
+                          🏪 Pickup
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                    {isDeliveryDisabled ? (
+                      <Text className="mt-2 text-center text-xs font-medium text-gray-400">
+                        Delivery unavailable beyond {DELIVERY_RADIUS_MILES}{" "}
+                        miles
+                      </Text>
+                    ) : null}
+                  </>
+                );
+              })()}
             </View>
           </TouchableOpacity>
         )}

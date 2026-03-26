@@ -24,6 +24,7 @@ export interface MenuItem {
   rating: number;
   category_ids: string[];
   category_names: string[];
+  offer_tags?: string[];
   customizations?: MenuItemCustomization[];
   is_available: boolean;
   is_featured: boolean;
@@ -48,7 +49,6 @@ export interface Category {
 /* -------------------------------------------------------------------------- */
 /*                                   USER                                     */
 /* -------------------------------------------------------------------------- */
-
 
 export interface User {
   id: string;
@@ -97,8 +97,11 @@ export interface OrderItemType {
   price: number;
   image_url?: string;
   quantity: number;
+  offer_tags?: string[];
   customizations?: OrderCustomization[];
   isRewardRedemption?: boolean;
+  isPromoFree?: boolean;
+  promoOfferId?: string;
   rewardPointsCost?: number;
   redemptionId?: string;
 }
@@ -117,18 +120,29 @@ export interface OrderStore {
     quantity?: number,
     redemptionId?: string,
   ) => void;
+  addPromoFreeItem: (
+    item: MenuItem,
+    promoOfferId: string,
+    quantity?: number,
+  ) => void;
+  removePromoFreeItem: (promoOfferId: string) => void;
+  clearPromoFreeItems: () => void;
   removeItem: (
     id: string,
     customizations: OrderCustomization[],
     isRewardRedemption?: boolean,
     redemptionId?: string,
+    promoOfferId?: string,
   ) => void;
   increaseQty: (id: string, customizations: OrderCustomization[]) => void;
   decreaseQty: (id: string, customizations: OrderCustomization[]) => void;
   clearOrder: () => void;
   getTotalItems: () => number;
   getTotalPrice: () => number;
-  createOrder: (userId: string) => Promise<string>;
+  createOrder: (
+    userId: string,
+    totalAmountOverride?: number,
+  ) => Promise<string>;
   reorder: (
     items: {
       id: string;
@@ -136,6 +150,7 @@ export interface OrderStore {
       price: number;
       quantity: number;
       image_url?: string;
+      offer_tags?: string[];
       customizations?: OrderCustomization[];
     }[],
   ) => void;
@@ -208,7 +223,31 @@ export interface SignInParams {
 export interface GetMenuParams {
   categoryId?: string;
   categoryName?: string;
+  offerTag?: string;
   query?: string;
+}
+
+export interface Offer {
+  id: string;
+  name: string;
+  description: string;
+  applies_to: "order" | "menu";
+  discount_type?:
+    | "bogo"
+    | "discount"
+    | "free_item_threshold"
+    | "percentage_threshold";
+  offer_tag?: string;
+  buy_quantity?: number;
+  free_quantity?: number;
+  threshold_amount?: number;
+  percent_off?: number;
+  free_item_id?: string;
+  max_free_qty?: number;
+  image_url?: string;
+  is_active: boolean;
+  startAt: Date | null;
+  endAt: Date | null;
 }
 
 export interface createPaymentIntentResponse {

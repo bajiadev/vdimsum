@@ -1,31 +1,44 @@
 import Header from "@/components/Header";
 import MenuCard from "@/components/MenuCard";
-import { getMenu } from "@/lib/firebase";
+import { getMenu, getOffers } from "@/lib/firebase";
 import useFirebase from "@/lib/useFirebase";
 import { useMenu } from "@/store/menu.store";
-import { MenuItem } from "@/type";
+import { MenuItem, Offer } from "@/type";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FlatList, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const CategoryItems = () => {
-  const { id, name } = useLocalSearchParams<{ id: string; name: string }>();
+  const { id, name, offerTag } = useLocalSearchParams<{
+    id: string;
+    name: string;
+    offerTag?: string;
+  }>();
   const categoryId = Array.isArray(id) ? id[0] : id;
   const categoryName = Array.isArray(name) ? name[0] : name;
+  const normalizedOfferTag = Array.isArray(offerTag) ? offerTag[0] : offerTag;
   const setMenu = useMenu((state) => state.setMenu);
+  const [offers, setOffers] = useState<Offer[]>([]);
 
   const { data, refetch, loading } = useFirebase({
     fn: getMenu,
-    params: { categoryId },
+    params: normalizedOfferTag
+      ? { offerTag: normalizedOfferTag }
+      : { categoryId },
     skip: true,
   });
 
   useEffect(() => {
+    if (normalizedOfferTag) {
+      refetch({ offerTag: normalizedOfferTag });
+      return;
+    }
+
     if (!categoryId) return;
     refetch({ categoryId });
-  }, [categoryId]);
+  }, [categoryId, normalizedOfferTag]);
 
   useEffect(() => {
     if (data) {
@@ -38,6 +51,7 @@ const CategoryItems = () => {
         rating: doc.rating,
         category_ids: doc.category_ids || [],
         category_names: doc.category_names || [],
+        offer_tags: doc.offer_tags || [],
         customizations: doc.customizations || [],
         is_available: doc.is_available ?? true,
         is_featured: doc.is_featured ?? false,
@@ -48,13 +62,39 @@ const CategoryItems = () => {
     }
   }, [data, setMenu]);
 
+  useEffect(() => {
+    const loadOffers = async () => {
+      try {
+        const activeOffers = await getOffers();
+        setOffers(activeOffers);
+      } catch (e) {
+        console.error("Failed to load active offers", e);
+      }
+    };
+
+    loadOffers();
+  }, []);
+
+  const activeBogoTags = useMemo(
+    () =>
+      offers
+        .filter(
+          (offer) =>
+            offer.applies_to === "menu" &&
+            offer.discount_type === "bogo" &&
+            Boolean(offer.offer_tag),
+        )
+        .map((offer) => offer.offer_tag as string),
+    [offers],
+  );
+
   return (
     <SafeAreaView className="bg-white h-full">
       <FlatList
         data={(data as MenuItem[]) ?? []}
         renderItem={({ item }) => (
           <View className="mb-2">
-            <MenuCard item={item as MenuItem} />
+            <MenuCard item={item as MenuItem} activeBogoTags={activeBogoTags} />
           </View>
         )}
         keyExtractor={(item) => item.id}
@@ -76,7 +116,13 @@ const CategoryItems = () => {
           </View>
         )}
         ListEmptyComponent={() =>
-          !loading && <Text>No items in this category</Text>
+          !loading && (
+            <Text>
+              {normalizedOfferTag
+                ? "No items found for this offer"
+                : "No items in this category"}
+            </Text>
+          )
         }
       />
     </SafeAreaView>

@@ -24,6 +24,7 @@ const mapMenuItem = (docSnap: any): MenuItem => {
     rating: data.rating,
     category_ids: data.category_ids || [],
     category_names: data.category_names || [],
+    offer_tags: data.offer_tags || [],
     customizations: data.customizations || [],
     is_available: data.is_available ?? true,
     is_featured: data.is_featured ?? false,

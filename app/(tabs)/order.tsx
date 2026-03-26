@@ -2,14 +2,16 @@ import CustomButton from "@/components/CustomButton";
 import CustomHeader from "@/components/CustomHeader";
 import OrderItem from "@/components/OrderItem";
 import SignInRequiredAlert from "@/components/SignInRequiredAlert";
-import { cloudFunctions, markOrderAsPaid } from "@/lib/firebase";
+import { cloudFunctions, getOffers, markOrderAsPaid } from "@/lib/firebase";
 import { formatCurrency } from "@/lib/formatter";
 import useAuthStore from "@/store/auth.store";
+import { useMenu } from "@/store/menu.store";
 import { useOrderStore } from "@/store/order.store";
 import useShopStore from "@/store/shop.store";
 import {
   createPaymentIntentRequest,
   createPaymentIntentResponse,
+  Offer,
   PaymentInfoStripeProps,
 } from "@/type";
 import { useStripe } from "@stripe/stripe-react-native";
@@ -21,7 +23,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const PaymentInfoStripe = ({
   label,
@@ -41,18 +43,239 @@ const PaymentInfoStripe = ({
 
 const Order = () => {
   const { user } = useAuthStore();
-  const { items, getTotalItems, getTotalPrice } = useOrderStore();
+  const {
+    items,
+    getTotalItems,
+    getTotalPrice,
+    addPromoFreeItem,
+    removePromoFreeItem,
+    clearPromoFreeItems,
+  } = useOrderStore();
+  const { fetchMenuItemById } = useMenu();
   const { shopName, shopAddress, deliveryAddress, orderType } = useShopStore();
   const stripe = useStripe();
   const functions = cloudFunctions;
   const [showSignInPrompt, setShowSignInPrompt] = useState(false);
+  const [offers, setOffers] = useState<Offer[]>([]);
+  const [thresholdFreeItemName, setThresholdFreeItemName] =
+    useState<string>("");
+
+  useEffect(() => {
+    const loadOffers = async () => {
+      try {
+        const data = await getOffers();
+        setOffers(data);
+      } catch (e) {
+        console.error("Failed to load offers", e);
+      }
+    };
+
+    loadOffers();
+  }, []);
 
   const totalItems = getTotalItems();
   const totalPrice = getTotalPrice();
-  const chargeableItems = items.filter((item) => !item.isRewardRedemption);
+  const chargeableItems = items.filter(
+    (item) => !item.isRewardRedemption && !item.isPromoFree,
+  );
+  const activeBogoOffer = useMemo(
+    () =>
+      offers.find(
+        (offer) =>
+          offer.applies_to === "menu" &&
+          offer.discount_type === "bogo" &&
+          Boolean(offer.offer_tag),
+      ),
+    [offers],
+  );
+
+  const bogoPricing = useMemo(() => {
+    const payableByMenuId = new Map<string, number>();
+
+    chargeableItems.forEach((item) => {
+      payableByMenuId.set(
+        item.id,
+        (payableByMenuId.get(item.id) || 0) + item.quantity,
+      );
+    });
+
+    if (!activeBogoOffer?.offer_tag) {
+      return {
+        discount: 0,
+        payableByMenuId,
+      };
+    }
+
+    const buyQty = Math.max(1, activeBogoOffer.buy_quantity ?? 1);
+    const freeQty = Math.max(1, activeBogoOffer.free_quantity ?? 1);
+    const groupSize = buyQty + freeQty;
+    const eligibleUnits: { id: string; price: number }[] = [];
+
+    chargeableItems.forEach((item) => {
+      if (!item.offer_tags?.includes(activeBogoOffer.offer_tag!)) return;
+
+      for (let i = 0; i < item.quantity; i += 1) {
+        eligibleUnits.push({ id: item.id, price: item.price });
+      }
+    });
+
+    const freeUnits = Math.floor(eligibleUnits.length / groupSize) * freeQty;
+    if (freeUnits <= 0) {
+      return {
+        discount: 0,
+        payableByMenuId,
+      };
+    }
+
+    eligibleUnits.sort((a, b) => a.price - b.price);
+    const discount = eligibleUnits
+      .slice(0, freeUnits)
+      .reduce((sum, unit) => sum + unit.price, 0);
+
+    eligibleUnits.slice(0, freeUnits).forEach((unit) => {
+      const currentQty = payableByMenuId.get(unit.id) || 0;
+      payableByMenuId.set(unit.id, Math.max(0, currentQty - 1));
+    });
+
+    return {
+      discount,
+      payableByMenuId,
+    };
+  }, [activeBogoOffer, chargeableItems]);
+
   const deliveryFee = 0;
-  const discount = 0;
-  const finalTotal = totalPrice + deliveryFee - discount;
+  const bogoDiscount = bogoPricing.discount;
+
+  const activePercentageOffer = useMemo(
+    () =>
+      offers.find(
+        (offer) =>
+          offer.applies_to === "order" &&
+          offer.discount_type === "percentage_threshold" &&
+          typeof offer.threshold_amount === "number" &&
+          typeof offer.percent_off === "number",
+      ),
+    [offers],
+  );
+
+  const activeThresholdOffer = useMemo(
+    () =>
+      offers.find(
+        (offer) =>
+          offer.applies_to === "order" &&
+          offer.discount_type === "free_item_threshold" &&
+          typeof offer.threshold_amount === "number" &&
+          Boolean(offer.free_item_id),
+      ),
+    [offers],
+  );
+
+  const bogoAdjustedSubtotal = Math.max(totalPrice - bogoDiscount, 0);
+  const percentageThresholdAmount =
+    activePercentageOffer?.threshold_amount ?? null;
+  const percentageRemaining =
+    percentageThresholdAmount === null
+      ? 0
+      : Math.max(percentageThresholdAmount - bogoAdjustedSubtotal, 0);
+  const qualifiesForPercentageDiscount =
+    percentageThresholdAmount !== null &&
+    bogoAdjustedSubtotal >= percentageThresholdAmount;
+  const percentageDiscount = qualifiesForPercentageDiscount
+    ? Math.floor(
+        bogoAdjustedSubtotal *
+          ((activePercentageOffer?.percent_off ?? 0) / 100),
+      )
+    : 0;
+
+  const totalDiscount = bogoDiscount + percentageDiscount;
+  const thresholdAmount = activeThresholdOffer?.threshold_amount ?? null;
+  const thresholdRemaining =
+    thresholdAmount === null
+      ? 0
+      : Math.max(thresholdAmount - bogoAdjustedSubtotal, 0);
+  const qualifiesForFreeItem =
+    thresholdAmount !== null && bogoAdjustedSubtotal >= thresholdAmount;
+  const thresholdProgressPercent =
+    thresholdAmount === null || thresholdAmount <= 0
+      ? 0
+      : Math.min(
+          100,
+          Math.floor((bogoAdjustedSubtotal / thresholdAmount) * 100),
+        );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadThresholdFreeItemName = async () => {
+      if (!activeThresholdOffer?.free_item_id) {
+        setThresholdFreeItemName("");
+        return;
+      }
+
+      try {
+        const freeItem = await fetchMenuItemById(
+          activeThresholdOffer.free_item_id,
+        );
+        if (cancelled) return;
+        setThresholdFreeItemName(freeItem.name || "free item");
+      } catch (e) {
+        if (cancelled) return;
+        setThresholdFreeItemName("free item");
+      }
+    };
+
+    loadThresholdFreeItemName();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeThresholdOffer?.free_item_id, fetchMenuItemById]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const syncThresholdFreeItem = async () => {
+      if (!activeThresholdOffer?.id || !activeThresholdOffer.free_item_id) {
+        clearPromoFreeItems();
+        return;
+      }
+
+      if (!qualifiesForFreeItem) {
+        removePromoFreeItem(activeThresholdOffer.id);
+        return;
+      }
+
+      try {
+        const promoItem = await fetchMenuItemById(
+          activeThresholdOffer.free_item_id,
+        );
+        if (cancelled) return;
+
+        addPromoFreeItem(
+          promoItem,
+          activeThresholdOffer.id,
+          activeThresholdOffer.max_free_qty ?? 1,
+        );
+      } catch (e) {
+        console.error("Failed to add threshold free item", e);
+      }
+    };
+
+    syncThresholdFreeItem();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    activeThresholdOffer,
+    addPromoFreeItem,
+    fetchMenuItemById,
+    qualifiesForFreeItem,
+    removePromoFreeItem,
+    clearPromoFreeItems,
+  ]);
+
+  const finalTotal = Math.max(totalPrice + deliveryFee - totalDiscount, 0);
 
   const headerText = !orderType
     ? "Order info"
@@ -81,9 +304,11 @@ const Order = () => {
       const user = auth.currentUser;
       if (!user) throw new Error("User not logged in");
 
-      const orderId = await useOrderStore.getState().createOrder(user.uid);
+      const orderId = await useOrderStore
+        .getState()
+        .createOrder(user.uid, finalTotal);
 
-      if (chargeableItems.length === 0 || totalPrice <= 0) {
+      if (chargeableItems.length === 0 || finalTotal <= 0) {
         await markOrderAsPaid(orderId, user.uid);
         Alert.alert(
           "Order placed",
@@ -99,10 +324,22 @@ const Order = () => {
         createPaymentIntentResponse
       >(functions, "createPaymentIntent");
 
-      const orderItemsPayload = chargeableItems.map((i) => ({
-        id: i.id,
-        quantity: i.quantity,
-      }));
+      const remainingPayableByMenuId = new Map(bogoPricing.payableByMenuId);
+      const orderItemsPayload = chargeableItems
+        .map((i) => {
+          const remainingQty = remainingPayableByMenuId.get(i.id) || 0;
+          const quantityToCharge = Math.min(i.quantity, remainingQty);
+          remainingPayableByMenuId.set(
+            i.id,
+            Math.max(0, remainingQty - quantityToCharge),
+          );
+
+          return {
+            id: i.id,
+            quantity: quantityToCharge,
+          };
+        })
+        .filter((item) => item.quantity > 0);
 
       const { data } = await createPaymentIntent({
         orderItems: orderItemsPayload,
@@ -193,6 +430,27 @@ const Order = () => {
                 </Text>
               ) : null}
             </TouchableOpacity>
+
+            {activeThresholdOffer && thresholdAmount ? (
+              <View className="mb-4 rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3">
+                <Text className="text-sm font-semibold text-orange-800">
+                  {qualifiesForFreeItem
+                    ? `Unlocked: Free ${thresholdFreeItemName || "item"} added`
+                    : `Spend ${formatCurrency(thresholdRemaining)} more to get a free ${thresholdFreeItemName || "item"}`}
+                </Text>
+                <Text className="mt-1 text-xs text-orange-700">
+                  Progress: {thresholdProgressPercent}% (
+                  {formatCurrency(bogoAdjustedSubtotal)} /{" "}
+                  {formatCurrency(thresholdAmount)})
+                </Text>
+                <View className="mt-2 h-2 w-full overflow-hidden rounded-full bg-orange-200">
+                  <View
+                    className="h-2 rounded-full bg-orange-500"
+                    style={{ width: `${thresholdProgressPercent}%` }}
+                  />
+                </View>
+              </View>
+            ) : null}
           </View>
         )}
         ListEmptyComponent={() => (
@@ -232,9 +490,28 @@ const Order = () => {
                 />
                 <PaymentInfoStripe
                   label={`Discount`}
-                  value={`- ${formatCurrency(discount)}`}
+                  value={`- ${formatCurrency(totalDiscount)}`}
                   valueStyle="!text-success"
                 />
+                {activeBogoOffer ? (
+                  <Text className="text-xs text-gray-500 mt-1">
+                    BOGO applied: {activeBogoOffer.name}
+                  </Text>
+                ) : null}
+                {activePercentageOffer ? (
+                  <Text className="text-xs text-gray-500 mt-1">
+                    {qualifiesForPercentageDiscount
+                      ? `${activePercentageOffer.percent_off}% off applied: ${activePercentageOffer.name}`
+                      : `Spend ${formatCurrency(percentageRemaining)} more to unlock ${activePercentageOffer.percent_off}% off`}
+                  </Text>
+                ) : null}
+                {activeThresholdOffer ? (
+                  <Text className="text-xs text-gray-500 mt-1">
+                    {qualifiesForFreeItem
+                      ? `${activeThresholdOffer.name} unlocked`
+                      : `Spend ${formatCurrency(thresholdRemaining)} more to unlock ${activeThresholdOffer.name}`}
+                  </Text>
+                ) : null}
                 <View className="border-t border-gray-300 my-2" />
                 <PaymentInfoStripe
                   label={`Total`}

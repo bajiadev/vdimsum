@@ -1,8 +1,8 @@
 import { images } from "@/constants";
 import { cancelRedemption } from "@/lib/firebase";
 import { formatCurrency } from "@/lib/formatter";
-import { useOrderStore } from "@/store/order.store";
 import useAuthStore from "@/store/auth.store";
+import { useOrderStore } from "@/store/order.store";
 import { OrderItemType } from "@/type";
 import { Alert, Image, Text, TouchableOpacity, View } from "react-native";
 
@@ -10,6 +10,7 @@ const OrderItem = ({ item }: { item: OrderItemType }) => {
   const { increaseQty, decreaseQty, removeItem } = useOrderStore();
   const { user } = useAuthStore();
   const isRedeemedReward = item.isRewardRedemption;
+  const isPromoFree = item.isPromoFree;
 
   const handleRemove = async () => {
     try {
@@ -22,6 +23,7 @@ const OrderItem = ({ item }: { item: OrderItemType }) => {
         item.customizations || [],
         !!item.isRewardRedemption,
         item.redemptionId,
+        item.promoOfferId,
       );
     } catch (error: any) {
       Alert.alert(
@@ -67,6 +69,12 @@ const OrderItem = ({ item }: { item: OrderItemType }) => {
                 Redeemed item · Qty {item.quantity}
               </Text>
             </View>
+          ) : isPromoFree ? (
+            <View className="mt-2">
+              <Text className="text-xs text-green-700 font-semibold">
+                Free item · Qty {item.quantity}
+              </Text>
+            </View>
           ) : (
             <View className="flex flex-row items-center gap-x-4 mt-2">
               <TouchableOpacity
@@ -99,9 +107,15 @@ const OrderItem = ({ item }: { item: OrderItemType }) => {
         </View>
       </View>
 
-      <TouchableOpacity onPress={handleRemove} className="flex-center">
-        <Image source={images.trash} className="size-5" resizeMode="contain" />
-      </TouchableOpacity>
+      {!isPromoFree ? (
+        <TouchableOpacity onPress={handleRemove} className="flex-center">
+          <Image
+            source={images.trash}
+            className="size-5"
+            resizeMode="contain"
+          />
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 };

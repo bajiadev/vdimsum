@@ -15,6 +15,7 @@ import Header from "@/components/Header";
 import { images } from "@/constants";
 import { getFeaturedMenuItems, getOffers } from "@/lib/firebase";
 import useAuthStore from "@/store/auth.store";
+import { Offer } from "@/type";
 
 import OrderCard from "@/components/OrderCard";
 import { getUserOrders } from "@/lib/firebase";
@@ -25,7 +26,7 @@ import { useOrdersStore } from "@/store/orders.store";
 
 export default function Index() {
   const [featured, setFeatured] = useState<any[]>([]);
-  const [offers, setOffers] = useState<any[]>([]);
+  const [offers, setOffers] = useState<Offer[]>([]);
   const [loadingFeatured, setLoadingFeatured] = useState(true);
   const [loadingOffers, setLoadingOffers] = useState(true);
   const [loadingOrders, setLoadingOrders] = useState(true);
@@ -130,7 +131,7 @@ export default function Index() {
                         className="text-white text-2xl font-bold leading-tight"
                         numberOfLines={2}
                       >
-                        {item.title}
+                        {item.name}
                       </Text>
                       <Text
                         className="text-white/90 text-sm mt-2"
@@ -138,15 +139,14 @@ export default function Index() {
                       >
                         {item.description}
                       </Text>
+                      <Text className="text-white/80 text-xs mt-2 uppercase">
+                        Applies to {item.applies_to}
+                      </Text>
                     </View>
 
                     <Image
                       source={
-                        item.image_url
-                          ? { uri: item.image_url }
-                          : item.imageUrl
-                            ? { uri: item.imageUrl }
-                            : offerImage
+                        item.image_url ? { uri: item.image_url } : offerImage
                       }
                       className="w-24 h-24 rounded-full"
                       resizeMode="cover"

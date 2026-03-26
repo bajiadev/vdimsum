@@ -1,15 +1,7 @@
-import { app } from "@/lib/firebase";
+import { app, createOrder } from "@/lib/firebase";
 import { OrderCustomization, OrderItemType, OrderStore } from "@/type";
-import {
-  collection,
-  doc,
-  getFirestore,
-  serverTimestamp,
-  writeBatch,
-} from "firebase/firestore";
+import { getFirestore } from "firebase/firestore";
 import { create } from "zustand";
-import useShopStore from "./shop.store";
-import { createOrder } from "@/lib/firebase";
 
 const db = getFirestore(app);
 
@@ -29,6 +21,8 @@ function isSameLineItem(a: OrderItemType, b: OrderItemType): boolean {
   return (
     a.id === b.id &&
     (a.isRewardRedemption ?? false) === (b.isRewardRedemption ?? false) &&
+    (a.isPromoFree ?? false) === (b.isPromoFree ?? false) &&
+    (a.promoOfferId ?? "") === (b.promoOfferId ?? "") &&
     (a.redemptionId ?? "") === (b.redemptionId ?? "") &&
     areCustomizationsEqual(a.customizations ?? [], b.customizations ?? [])
   );
@@ -49,6 +43,7 @@ export const useOrderStore = create<OrderStore>((set, get) => ({
       price: item.price + customizationsPrice,
       image_url: item.image_url,
       quantity,
+      offer_tags: item.offer_tags || [],
       customizations,
       isRewardRedemption: false,
     };
@@ -76,6 +71,7 @@ export const useOrderStore = create<OrderStore>((set, get) => ({
       price: 0,
       image_url: item.image_url,
       quantity,
+      offer_tags: item.offer_tags || [],
       customizations: [],
       isRewardRedemption: true,
       rewardPointsCost: item.points_cost || 0,
@@ -99,6 +95,47 @@ export const useOrderStore = create<OrderStore>((set, get) => ({
       items: [...get().items, rewardItem],
     });
   },
+  addPromoFreeItem: (item, promoOfferId, quantity = 1) => {
+    const promoItem: OrderItemType = {
+      id: item.id,
+      name: item.name,
+      price: 0,
+      image_url: item.image_url,
+      quantity,
+      offer_tags: item.offer_tags || [],
+      customizations: [],
+      isRewardRedemption: false,
+      isPromoFree: true,
+      promoOfferId,
+    };
+
+    const existing = get().items.find((i) => isSameLineItem(i, promoItem));
+
+    if (existing) {
+      set({
+        items: get().items.map((i) =>
+          isSameLineItem(i, promoItem) ? { ...i, quantity } : i,
+        ),
+      });
+      return;
+    }
+
+    set({
+      items: [...get().items, promoItem],
+    });
+  },
+  removePromoFreeItem: (promoOfferId) => {
+    set({
+      items: get().items.filter(
+        (i) => !(i.isPromoFree && i.promoOfferId === promoOfferId),
+      ),
+    });
+  },
+  clearPromoFreeItems: () => {
+    set({
+      items: get().items.filter((i) => !i.isPromoFree),
+    });
+  },
   clearOrder: () => set({ items: [] }),
 
   getTotalItems: () => get().items.reduce((sum, i) => sum + i.quantity, 0),
@@ -111,6 +148,7 @@ export const useOrderStore = create<OrderStore>((set, get) => ({
     customizations = [],
     isRewardRedemption = false,
     redemptionId,
+    promoOfferId,
   ) => {
     set({
       items: get().items.filter(
@@ -119,6 +157,7 @@ export const useOrderStore = create<OrderStore>((set, get) => ({
             i.id === id &&
             (i.isRewardRedemption ?? false) === isRewardRedemption &&
             (redemptionId === undefined || i.redemptionId === redemptionId) &&
+            (promoOfferId === undefined || i.promoOfferId === promoOfferId) &&
             areCustomizationsEqual(i.customizations ?? [], customizations)
           ),
       ),
@@ -130,6 +169,7 @@ export const useOrderStore = create<OrderStore>((set, get) => ({
       items: get().items.map((i) =>
         i.id === id &&
         !i.isRewardRedemption &&
+        !i.isPromoFree &&
         areCustomizationsEqual(i.customizations ?? [], customizations)
           ? { ...i, quantity: i.quantity + 1 }
           : i,
@@ -143,6 +183,7 @@ export const useOrderStore = create<OrderStore>((set, get) => ({
         .items.map((i) =>
           i.id === id &&
           !i.isRewardRedemption &&
+          !i.isPromoFree &&
           areCustomizationsEqual(i.customizations ?? [], customizations)
             ? { ...i, quantity: i.quantity - 1 }
             : i,
@@ -150,10 +191,10 @@ export const useOrderStore = create<OrderStore>((set, get) => ({
         .filter((i) => i.quantity > 0),
     });
   },
-  createOrder: async (uid: string) => {
+  createOrder: async (uid: string, totalAmountOverride?: number) => {
     const items = get().items;
     if (items.length === 0) throw new Error("Order is empty");
-    const totalPrice = get().getTotalPrice();
+    const totalPrice = totalAmountOverride ?? get().getTotalPrice();
     // Call the new firebase.ts createOrder
     return await createOrder(uid, items, totalPrice);
   },
@@ -166,8 +207,11 @@ export const useOrderStore = create<OrderStore>((set, get) => ({
         price: i.price,
         image_url: i.image_url,
         quantity: i.quantity,
+        offer_tags: i.offer_tags || [],
         customizations: i.customizations || [],
         isRewardRedemption: false,
+        isPromoFree: i.isPromoFree || false,
+        promoOfferId: i.promoOfferId,
       })),
     });
   },
