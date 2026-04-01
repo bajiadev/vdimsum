@@ -1,26 +1,33 @@
-import * as functions from "firebase-functions";
-import * as admin from "firebase-admin";
-admin.initializeApp();
+import admin from "firebase-admin";
+import { onDocumentWritten } from "firebase-functions/v2/firestore";
 
-export const createDriverJobOnOrderPaid = functions.firestore
-  .document("orders/{orderId}")
-  .onWrite(async (change, context) => {
-    const after = change.after.data();
+if (admin.apps.length === 0) {
+  admin.initializeApp();
+}
+
+const db = admin.firestore();
+
+export const createDriverJobOnOrderPaid = onDocumentWritten(
+  "orders/{orderId}",
+  async (event) => {
+    const after = event.data?.after?.data() as
+      | admin.firestore.DocumentData
+      | undefined;
+
     if (!after) return;
 
-    // Only create job if order is paid and not already assigned
     if (after.status === "paid" && !after.driverJobCreated) {
       const jobData = {
-        orderId: context.params.orderId,
+        orderId: event.params.orderId,
         shopId: after.shopId,
         userId: after.userId,
         deliveryAddress: after.deliveryAddress,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         status: "pending",
-        // ...add any other info needed by the driver
       };
-      await admin.firestore().collection("driverJobs").add(jobData);
-      // Optionally mark order as job created to avoid duplicates
-      await change.after.ref.update({ driverJobCreated: true });
+
+      await db.collection("driverJobs").add(jobData);
+      await event.data?.after?.ref.update({ driverJobCreated: true });
     }
-  });
+  },
+);

@@ -241,7 +241,7 @@ export interface Offer {
   buy_quantity?: number;
   free_quantity?: number;
   threshold_amount?: number;
-  percent_off?: number;
+  percentage_off?: number;
   free_item_id?: string;
   max_free_qty?: number;
   image_url?: string;
@@ -256,7 +256,7 @@ export interface createPaymentIntentResponse {
 
 export interface createPaymentIntentRequest {
   // orderItems: OrderItemType[];
-  orderItems: { id: string; quantity: number }[];
+  orderItems: { id: string; quantity: number; unitPrice?: number }[];
   orderId: string;
 }
 
@@ -265,8 +265,10 @@ export type Order = {
   id: string;
   orderNumber: string; // readable order number e.g. "260212-A1B2C3"
   userId: string;
+  shopId?: string | null;
   shopName: string | null;
   shopAddress: string | null;
+  deliveryAddress?: Address | null;
   orderType: string | null;
   itemCount: number; // total number of items in subcollection
   amount: number; // pence
@@ -284,6 +286,8 @@ export type OrderItem = {
   image_url?: string;
   customizations?: OrderCustomization[];
   isRewardRedemption?: boolean;
+  isPromoFree?: boolean;
+  promoOfferId?: string;
   rewardPointsCost?: number;
   redemptionId?: string;
 };

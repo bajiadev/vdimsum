@@ -4,16 +4,25 @@ import { getOrderDetails } from "@/lib/firebase";
 import { formatCurrency } from "@/lib/formatter";
 import { useOrderStore } from "@/store/order.store";
 import { useOrdersStore } from "@/store/orders.store";
+import useShopStore from "@/store/shop.store";
 import { Order, OrderItem } from "@/type";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, FlatList, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Image,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function OrderDetail() {
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const { orders } = useOrdersStore();
   const { reorder } = useOrderStore();
+  const { setShopSelection } = useShopStore();
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -39,9 +48,9 @@ export default function OrderDetail() {
   if (!order) {
     return (
       <SafeAreaView className="flex-1 bg-white">
-         <View className="px-6 pt-6">
-        <CustomHeader />
-      </View>
+        <View className="px-6 pt-6">
+          <CustomHeader />
+        </View>
         <View className="flex-1 justify-center items-center">
           <Text className="text-gray-400">Order not found</Text>
         </View>
@@ -64,7 +73,8 @@ export default function OrderDetail() {
 
   const handleReorder = () => {
     const reorderableItems = orderItems.filter(
-      (item) => !item.isRewardRedemption,
+      (item) =>
+        !item.isRewardRedemption && !item.isPromoFree && Number(item.price) > 0,
     );
 
     if (reorderableItems.length === 0) {
@@ -77,10 +87,26 @@ export default function OrderDetail() {
 
     if (reorderableItems.length < orderItems.length) {
       Alert.alert(
-        "Rewards not included",
-        "Previously redeemed reward items are not included in re-order. You can redeem them again from Rewards.",
+        "Promotions and rewards not included",
+        "Previously redeemed reward items and old free promo items are not included in re-order. Eligible promotions will be applied again automatically.",
       );
     }
+
+    const normalizedOrderType =
+      order.orderType === "delivery" || order.orderType === "pickup"
+        ? order.orderType
+        : null;
+
+    setShopSelection({
+      shopId: order.shopId ?? null,
+      shopName: order.shopName ?? null,
+      shopAddress: order.shopAddress ?? null,
+      deliveryAddress:
+        normalizedOrderType === "delivery"
+          ? (order.deliveryAddress ?? null)
+          : null,
+      orderType: normalizedOrderType,
+    });
 
     reorder(
       reorderableItems.map((item) => ({
@@ -188,9 +214,23 @@ export default function OrderDetail() {
         renderItem={({ item }) => (
           <View className="px-4 mb-4">
             <View className="bg-gray-50 rounded-lg p-3">
-              <View className="flex-row justify-between items-start">
+              <View className="flex-row justify-between items-start gap-3">
+                <View className="w-14 h-14 rounded-lg overflow-hidden bg-gray-200 items-center justify-center">
+                  {item.image_url ? (
+                    <Image
+                      source={{ uri: item.image_url }}
+                      className="w-14 h-14"
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <Text className="text-[10px] text-gray-500">No image</Text>
+                  )}
+                </View>
+
                 <View className="flex-1">
-                  <Text className="font-semibold text-base">{item.name}</Text>
+                  <Text className="font-semibold text-base" numberOfLines={2}>
+                    {item.name}
+                  </Text>
                   <Text className="text-gray-600 text-sm mt-1">
                     Qty: {item.quantity}
                   </Text>

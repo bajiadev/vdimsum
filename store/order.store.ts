@@ -200,19 +200,43 @@ export const useOrderStore = create<OrderStore>((set, get) => ({
   },
 
   reorder: (items) => {
-    set({
-      items: items.map((i) => ({
+    const nextItems: OrderItemType[] = [];
+
+    items.forEach((i) => {
+      if ((i as { isRewardRedemption?: boolean }).isRewardRedemption) return;
+      if ((i as { isPromoFree?: boolean }).isPromoFree) return;
+      if (Number(i.price) <= 0) return;
+
+      const quantity = Number.isFinite(i.quantity)
+        ? Math.max(0, Math.floor(i.quantity))
+        : 0;
+      if (quantity <= 0) return;
+
+      const candidate: OrderItemType = {
         id: i.id,
         name: i.name,
         price: i.price,
         image_url: i.image_url,
-        quantity: i.quantity,
+        quantity,
         offer_tags: i.offer_tags || [],
         customizations: i.customizations || [],
         isRewardRedemption: false,
-        isPromoFree: i.isPromoFree || false,
-        promoOfferId: i.promoOfferId,
-      })),
+        isPromoFree: false,
+      };
+
+      const existing = nextItems.find(
+        (line) =>
+          line.price === candidate.price && isSameLineItem(line, candidate),
+      );
+
+      if (existing) {
+        existing.quantity += candidate.quantity;
+        return;
+      }
+
+      nextItems.push(candidate);
     });
+
+    set({ items: nextItems });
   },
 }));

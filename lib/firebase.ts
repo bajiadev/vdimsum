@@ -243,41 +243,78 @@ export const getOffers = async (): Promise<Offer[]> => {
   try {
     const now = Timestamp.now();
 
-    const q = query(
-      collection(db, "offers"),
-      where("is_active", "==", true),
-      where("startAt", "<=", now),
-      where("endAt", ">=", now),
-    );
+    const q = query(collection(db, "offers"), where("is_active", "==", true));
 
     const snap = await getDocs(q);
-    return snap.docs.map((docSnap) => {
-      const data = docSnap.data() as any;
-      return {
-        id: docSnap.id,
-        name: data.name ?? data.title ?? "Offer",
-        description: data.description ?? "",
-        applies_to: data.applies_to === "order" ? "order" : "menu",
-        discount_type:
-          data.discount_type ??
-          (data.applies_to === "menu" ? "bogo" : undefined),
-        offer_tag: data.offer_tag,
-        buy_quantity: data.buy_quantity ?? 1,
-        free_quantity: data.free_quantity ?? 1,
-        threshold_amount:
-          typeof data.threshold_amount === "number"
-            ? data.threshold_amount
-            : undefined,
-        percent_off:
-          typeof data.percent_off === "number" ? data.percent_off : undefined,
-        free_item_id: data.free_item_id,
-        max_free_qty: data.max_free_qty ?? 1,
-        image_url: data.image_url ?? data.imageUrl,
-        is_active: Boolean(data.is_active),
-        startAt: data.startAt?.toDate?.() ?? null,
-        endAt: data.endAt?.toDate?.() ?? null,
-      };
-    });
+    return snap.docs
+      .map<Offer | null>((docSnap) => {
+        const data = docSnap.data() as any;
+        const appliesTo: Offer["applies_to"] =
+          data.applies_to === "order" ? "order" : "menu";
+        const startAtRaw = data.startAt ?? data.start_at ?? null;
+        const endAtRaw = data.endAt ?? data.end_at ?? null;
+
+        const startAtDate =
+          typeof startAtRaw?.toDate === "function"
+            ? startAtRaw.toDate()
+            : startAtRaw instanceof Date
+              ? startAtRaw
+              : null;
+        const endAtDate =
+          typeof endAtRaw?.toDate === "function"
+            ? endAtRaw.toDate()
+            : endAtRaw instanceof Date
+              ? endAtRaw
+              : null;
+
+        const startsInFuture =
+          !!startAtDate && startAtDate.getTime() > now.toDate().getTime();
+        const endedInPast =
+          !!endAtDate && endAtDate.getTime() < now.toDate().getTime();
+
+        const rawThresholdAmount =
+          typeof data.threshold_amount_pence === "number"
+            ? data.threshold_amount_pence
+            : data.threshold_amount;
+        const normalizedThresholdAmount =
+          typeof rawThresholdAmount === "number"
+            ? rawThresholdAmount > 0 && rawThresholdAmount <= 100
+              ? Math.round(rawThresholdAmount * 100)
+              : Math.round(rawThresholdAmount)
+            : undefined;
+
+        if (startsInFuture || endedInPast) {
+          return null;
+        }
+
+        return {
+          id: docSnap.id,
+          name: data.name ?? data.title ?? "Offer",
+          description: data.description ?? "",
+          applies_to: appliesTo,
+          discount_type:
+            data.discount_type ?? (appliesTo === "menu" ? "bogo" : undefined),
+          offer_tag: data.offer_tag,
+          buy_quantity: data.buy_quantity ?? 1,
+          free_quantity: data.free_quantity ?? 1,
+          threshold_amount: normalizedThresholdAmount,
+          percentage_off:
+            typeof data.percentage_off === "number"
+              ? data.percentage_off
+              : typeof data.percent_off === "number"
+                ? data.percent_off
+                : typeof data.off_percent === "number"
+                  ? data.off_percent
+                  : undefined,
+          free_item_id: data.free_item_id,
+          max_free_qty: data.max_free_qty ?? 1,
+          image_url: data.image_url ?? data.imageUrl,
+          is_active: Boolean(data.is_active),
+          startAt: startAtDate,
+          endAt: endAtDate,
+        };
+      })
+      .filter((offer): offer is Offer => offer !== null);
   } catch (e: any) {
     throw new Error(e.message);
   }
@@ -349,6 +386,8 @@ export const createOrder = async (
       image_url: item.image_url,
       customizations: item.customizations || [],
       isRewardRedemption: item.isRewardRedemption || false,
+      isPromoFree: item.isPromoFree || false,
+      promoOfferId: item.promoOfferId || null,
       rewardPointsCost: item.rewardPointsCost || 0,
       redemptionId: item.redemptionId || null,
     });

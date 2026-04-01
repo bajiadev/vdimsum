@@ -78,6 +78,18 @@ const Order = () => {
   const chargeableItems = items.filter(
     (item) => !item.isRewardRedemption && !item.isPromoFree,
   );
+  const getChargeableItemKey = (item: {
+    id: string;
+    price: number;
+    customizations?: { groupId: string; optionId: string }[];
+  }) => {
+    const customizationKey = (item.customizations || [])
+      .map((custom) => `${custom.groupId}:${custom.optionId}`)
+      .sort()
+      .join("|");
+
+    return `${item.id}-${item.price}-${customizationKey}`;
+  };
   const activeBogoOffer = useMemo(
     () =>
       offers.find(
@@ -90,32 +102,34 @@ const Order = () => {
   );
 
   const bogoPricing = useMemo(() => {
-    const payableByMenuId = new Map<string, number>();
+    const payableByItemKey = new Map<string, number>();
 
     chargeableItems.forEach((item) => {
-      payableByMenuId.set(
-        item.id,
-        (payableByMenuId.get(item.id) || 0) + item.quantity,
+      const itemKey = getChargeableItemKey(item);
+      payableByItemKey.set(
+        itemKey,
+        (payableByItemKey.get(itemKey) || 0) + item.quantity,
       );
     });
 
     if (!activeBogoOffer?.offer_tag) {
       return {
         discount: 0,
-        payableByMenuId,
+        payableByItemKey,
       };
     }
 
     const buyQty = Math.max(1, activeBogoOffer.buy_quantity ?? 1);
     const freeQty = Math.max(1, activeBogoOffer.free_quantity ?? 1);
     const groupSize = buyQty + freeQty;
-    const eligibleUnits: { id: string; price: number }[] = [];
+    const eligibleUnits: { itemKey: string; price: number }[] = [];
 
     chargeableItems.forEach((item) => {
       if (!item.offer_tags?.includes(activeBogoOffer.offer_tag!)) return;
+      const itemKey = getChargeableItemKey(item);
 
       for (let i = 0; i < item.quantity; i += 1) {
-        eligibleUnits.push({ id: item.id, price: item.price });
+        eligibleUnits.push({ itemKey, price: item.price });
       }
     });
 
@@ -123,7 +137,7 @@ const Order = () => {
     if (freeUnits <= 0) {
       return {
         discount: 0,
-        payableByMenuId,
+        payableByItemKey,
       };
     }
 
@@ -133,27 +147,27 @@ const Order = () => {
       .reduce((sum, unit) => sum + unit.price, 0);
 
     eligibleUnits.slice(0, freeUnits).forEach((unit) => {
-      const currentQty = payableByMenuId.get(unit.id) || 0;
-      payableByMenuId.set(unit.id, Math.max(0, currentQty - 1));
+      const currentQty = payableByItemKey.get(unit.itemKey) || 0;
+      payableByItemKey.set(unit.itemKey, Math.max(0, currentQty - 1));
     });
 
     return {
       discount,
-      payableByMenuId,
+      payableByItemKey,
     };
   }, [activeBogoOffer, chargeableItems]);
 
   const deliveryFee = 0;
   const bogoDiscount = bogoPricing.discount;
 
-  const activePercentageOffer = useMemo(
+  const percentageOfferCandidates = useMemo(
     () =>
-      offers.find(
+      offers.filter(
         (offer) =>
           offer.applies_to === "order" &&
           offer.discount_type === "percentage_threshold" &&
           typeof offer.threshold_amount === "number" &&
-          typeof offer.percent_off === "number",
+          typeof offer.percentage_off === "number",
       ),
     [offers],
   );
@@ -171,21 +185,60 @@ const Order = () => {
   );
 
   const bogoAdjustedSubtotal = Math.max(totalPrice - bogoDiscount, 0);
-  const percentageThresholdAmount =
-    activePercentageOffer?.threshold_amount ?? null;
-  const percentageRemaining =
-    percentageThresholdAmount === null
-      ? 0
-      : Math.max(percentageThresholdAmount - bogoAdjustedSubtotal, 0);
-  const qualifiesForPercentageDiscount =
-    percentageThresholdAmount !== null &&
-    bogoAdjustedSubtotal >= percentageThresholdAmount;
-  const percentageDiscount = qualifiesForPercentageDiscount
-    ? Math.floor(
-        bogoAdjustedSubtotal *
-          ((activePercentageOffer?.percent_off ?? 0) / 100),
-      )
-    : 0;
+  const percentageOfferEvaluation = useMemo(() => {
+    let bestOffer: Offer | null = null;
+    let bestDiscount = 0;
+
+    percentageOfferCandidates.forEach((offer) => {
+      const thresholdAmount = offer.threshold_amount ?? 0;
+      const percentOff = offer.percentage_off ?? 0;
+
+      if (thresholdAmount <= 0 || percentOff <= 0) return;
+      if (bogoAdjustedSubtotal < thresholdAmount) return;
+
+      const discount = Math.floor(bogoAdjustedSubtotal * (percentOff / 100));
+      if (discount > bestDiscount) {
+        bestDiscount = discount;
+        bestOffer = offer;
+      }
+    });
+
+    if (bestOffer) {
+      return {
+        offer: bestOffer,
+        discount: bestDiscount,
+        qualifies: true,
+        remaining: 0,
+      };
+    }
+
+    if (percentageOfferCandidates.length === 0) {
+      return {
+        offer: null,
+        discount: 0,
+        qualifies: false,
+        remaining: 0,
+      };
+    }
+
+    const nextOffer = [...percentageOfferCandidates].sort(
+      (a, b) =>
+        (a.threshold_amount ?? Infinity) - (b.threshold_amount ?? Infinity),
+    )[0];
+    const nextThreshold = nextOffer?.threshold_amount ?? 0;
+
+    return {
+      offer: nextOffer ?? null,
+      discount: 0,
+      qualifies: false,
+      remaining: Math.max(nextThreshold - bogoAdjustedSubtotal, 0),
+    };
+  }, [bogoAdjustedSubtotal, percentageOfferCandidates]);
+
+  const activePercentageOffer = percentageOfferEvaluation.offer;
+  const qualifiesForPercentageDiscount = percentageOfferEvaluation.qualifies;
+  const percentageDiscount = percentageOfferEvaluation.discount;
+  const percentageRemaining = percentageOfferEvaluation.remaining;
 
   const totalDiscount = bogoDiscount + percentageDiscount;
   const thresholdAmount = activeThresholdOffer?.threshold_amount ?? null;
@@ -324,19 +377,21 @@ const Order = () => {
         createPaymentIntentResponse
       >(functions, "createPaymentIntent");
 
-      const remainingPayableByMenuId = new Map(bogoPricing.payableByMenuId);
+      const remainingPayableByItemKey = new Map(bogoPricing.payableByItemKey);
       const orderItemsPayload = chargeableItems
         .map((i) => {
-          const remainingQty = remainingPayableByMenuId.get(i.id) || 0;
+          const itemKey = getChargeableItemKey(i);
+          const remainingQty = remainingPayableByItemKey.get(itemKey) || 0;
           const quantityToCharge = Math.min(i.quantity, remainingQty);
-          remainingPayableByMenuId.set(
-            i.id,
+          remainingPayableByItemKey.set(
+            itemKey,
             Math.max(0, remainingQty - quantityToCharge),
           );
 
           return {
             id: i.id,
             quantity: quantityToCharge,
+            unitPrice: i.price,
           };
         })
         .filter((item) => item.quantity > 0);
@@ -396,14 +451,19 @@ const Order = () => {
         data={items}
         renderItem={({ item }) => <OrderItem item={item} />}
         keyExtractor={(item) => {
-          const itemType = item.isRewardRedemption ? "reward" : "menu";
+          const itemType = item.isRewardRedemption
+            ? "reward"
+            : item.isPromoFree
+              ? "promo-free"
+              : "menu";
           const redemptionKey = item.redemptionId || "none";
+          const promoKey = item.promoOfferId || "none";
           const customizationKey = (item.customizations || [])
             .map((custom) => `${custom.groupId}:${custom.optionId}`)
             .sort()
             .join("|");
 
-          return `${item.id}-${itemType}-${redemptionKey}-${customizationKey}`;
+          return `${item.id}-${itemType}-${redemptionKey}-${promoKey}-${customizationKey}`;
         }}
         contentContainerClassName="pb-28 px-5 pt-5"
         ListHeaderComponent={() => (
@@ -501,8 +561,8 @@ const Order = () => {
                 {activePercentageOffer ? (
                   <Text className="text-xs text-gray-500 mt-1">
                     {qualifiesForPercentageDiscount
-                      ? `${activePercentageOffer.percent_off}% off applied: ${activePercentageOffer.name}`
-                      : `Spend ${formatCurrency(percentageRemaining)} more to unlock ${activePercentageOffer.percent_off}% off`}
+                      ? `${activePercentageOffer.percentage_off}% off applied: ${activePercentageOffer.name}`
+                      : `Spend ${formatCurrency(percentageRemaining)} more to unlock ${activePercentageOffer.percentage_off}% off`}
                   </Text>
                 ) : null}
                 {activeThresholdOffer ? (
